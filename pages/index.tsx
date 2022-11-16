@@ -1,7 +1,7 @@
-import { Box, Flex, FormControl, FormLabel, Input, NumberInput, NumberInputField, Select, Text } from '@chakra-ui/react'
+import { Box, Flex, FormControl, FormLabel, Input, NumberInput, NumberInputField, Select, Switch, Text } from '@chakra-ui/react'
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useContractRead, useAccount as useEthereumAccount } from 'wagmi';
-import { utils } from 'koilib';
+import { utils, Contract, Provider } from 'koilib';
 import { useState, useEffect } from 'react';
 import Nav from '../components/Nav'
 import Section from '../components/Section'
@@ -12,6 +12,8 @@ import ethereumBridgeAbi from '../contracts/abi/Ethereum-Bridge.json';
 
 const ETHEREUM_BRIDGE_ADDR = '0x47940D3089Da6DC306678109c834718AEF23A201';
 
+const koinosProvider = new Provider('https://harbinger-api.koinos.io');
+
 interface Chain {
   id: string;
   bridgeAddress: string;
@@ -20,17 +22,18 @@ interface Chain {
 const chains: Record<string, Chain> = {
   'koinos': {
     id: 'koinos',
-    bridgeAddress: 'asd'
+    bridgeAddress: '17XHjr7n2E4auykiHkfJMLGGovvaCadtQS'
   },
   'ethereum': {
     id: 'ethereum',
-    bridgeAddress: 'asd'
+    bridgeAddress: '0x47940D3089Da6DC306678109c834718AEF23A201'
   }
 }
 
 interface Asset {
   id: string;
   symbol: string;
+  name: string;
   ethereumAddress: string;
   koinosAddress: string;
 }
@@ -39,14 +42,16 @@ const assets: Record<string, Asset> = {
   'koin': {
     id: 'koin',
     symbol: 'tKOIN',
+    name: 'Koin',
     ethereumAddress: '0xeA756978B2D8754b0f92CAc325880aa13AF38f88',
-    koinosAddress: 'asd'
+    koinosAddress: '19JntSm8pSNETT9aHTwAUHC5RMoaSmgZPJ'
   },
   'weth': {
     id: 'weth',
     symbol: 'wETH',
+    name: 'Wrapped Ether',
     ethereumAddress: '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
-    koinosAddress: 'asd'
+    koinosAddress: '1KazZFUnZSLjeXq2QrifdnYqiBvA7RVF3G'
   }
 }
 
@@ -58,6 +63,8 @@ interface State {
   recipient: string | undefined
   ethereumTokenBalance: string | undefined
   koinosTokenBalance: string | undefined
+  koinosTokenContract: Contract
+  overrideRecipient: boolean
 }
 
 const initialState: State = {
@@ -67,7 +74,13 @@ const initialState: State = {
   amount: '0',
   recipient: '',
   ethereumTokenBalance: undefined,
-  koinosTokenBalance: undefined
+  koinosTokenBalance: undefined,
+  koinosTokenContract: new Contract({
+    id: assets['koin'].koinosAddress,
+    abi: utils.tokenAbi,
+    provider: koinosProvider,
+  }),
+  overrideRecipient: false
 }
 
 export default function Home() {
@@ -101,7 +114,31 @@ export default function Home() {
   }
 
   const handleAssetChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setState({ ...state, asset: assets[event.target.value] })
+    setState({
+      ...state,
+      asset: assets[event.target.value],
+      koinosTokenBalance: '',
+      ethereumTokenBalance: '',
+      koinosTokenContract: new Contract({
+        id: assets[event.target.value].koinosAddress,
+        abi: utils.tokenAbi,
+        provider: koinosProvider,
+      })
+    })
+  }
+
+  const handleOverrideRecipientChange = (_: React.ChangeEvent<HTMLInputElement>) => {
+    setState({
+      ...state,
+      overrideRecipient: !state.overrideRecipient
+    })
+  }
+
+  const handleRecipientChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setState({
+      ...state,
+      recipient: event.target.value
+    })
   }
 
   const { data: ethTokenBalanceData } = useContractRead({
@@ -140,7 +177,28 @@ export default function Home() {
       }))
     }
 
-  }, [setState, ethTokenBalanceData])
+  }, [ethTokenBalanceData])
+
+  useEffect(() => {
+    if (koinosAddress) {
+      const getBalance = async (owner: string) => {
+        const { result: balanceOfResult } = await state.koinosTokenContract.functions.balanceOf<{ value: string }>({
+          owner
+        })
+    
+        return utils.formatUnits(balanceOfResult?.value!, 8)
+      }
+
+      getBalance(koinosAddress)
+        .then(balance => {
+          setState((state) => ({
+            ...state,
+            koinosTokenBalance: balance
+          }))
+        })
+    }
+
+  }, [koinosAddress, state.koinosTokenContract.functions])
 
   useEffect(() => {
     setState((state) => {
@@ -154,17 +212,25 @@ export default function Home() {
           ...state,
           recipient: koinosAddress
         }
-      } 
-      
+      }
+
       return state
     })
-  }, [setState, ethereumAddress, koinosAddress])
+  }, [ethereumAddress, koinosAddress])
 
   const onAmountChange = (amount: string, _: number): void => {
     setState({ ...state, amount })
   }
 
   console.log('test')
+
+  let maxAmount = 0;
+
+  if (state.chainFrom.id === 'koinos') {
+    maxAmount = state.koinosTokenBalance ? parseInt(state.koinosTokenBalance) : 0
+  } else if (state.chainFrom.id === 'ethereum') {
+    maxAmount = state.ethereumTokenBalance ? parseInt(state.ethereumTokenBalance) : 0
+  }
 
   return (
     <Box minHeight="100vh">
@@ -200,8 +266,11 @@ export default function Home() {
                 value={state.asset.id}
                 onChange={handleAssetChange}
               >
-                <option value="koin" >Koin (tKOIN)</option>
-                <option value="weth">Wrapped Ether (wETH)</option>
+                {
+                  Object.keys(assets).map((key) => (
+                    <option key={key} value={key} >{assets[key].name} ({assets[key].symbol})</option>
+                  ))
+                }
               </Select>
             </FormControl>
           </Box>
@@ -210,13 +279,14 @@ export default function Home() {
         <Section heading="4. Enter the amount to transfer">
           <Box>
             <FormControl>
-              <FormLabel>Amount:</FormLabel>
+              <FormLabel htmlFor='amount'>Amount:</FormLabel>
               <NumberInput
+                id='amount'
                 value={state.amount}
                 onChange={onAmountChange}
                 precision={8}
                 min={0}
-                max={state.ethereumTokenBalance ? parseInt(state.ethereumTokenBalance) : 0}
+                max={maxAmount}
                 size="lg"
               >
                 <NumberInputField autoFocus />
@@ -224,18 +294,30 @@ export default function Home() {
             </FormControl>
             <br />
             <Text>Ethereum Balance: {state.ethereumTokenBalance} {state.asset.symbol}</Text>
-            <Text>Koinos Balance: { } {state.asset.symbol}</Text>
+            <Text>Koinos Balance: {state.koinosTokenBalance} {state.asset.symbol}</Text>
           </Box>
         </Section>
         <br />
         <Section heading="5. Enter the recipient">
           <Box>
             <FormControl>
-              <FormLabel>Recipient:</FormLabel>
+              <FormLabel htmlFor='recipient'>Recipient:</FormLabel>
               <Input
+                id='recipient'
                 value={state.recipient}
                 size="lg"
-                disabled={true}
+                disabled={!state.overrideRecipient}
+                onChange={handleRecipientChange}
+              />
+            </FormControl>
+            <FormControl display='flex' alignItems='center'>
+              <FormLabel htmlFor='override-recipient' mb='0'>
+                Override recipient
+              </FormLabel>
+              <Switch
+                id='override-recipient'
+                checked={state.overrideRecipient}
+                onChange={handleOverrideRecipientChange}
               />
             </FormControl>
           </Box>
