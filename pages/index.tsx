@@ -1,14 +1,16 @@
-import { Box, Flex, FormControl, FormLabel, Input, NumberInput, NumberInputField, Select, Switch, Text } from '@chakra-ui/react'
+import { Box, Button, Flex, FormControl, FormLabel, Input, NumberInput, NumberInputField, Select, Switch, Text, useToast } from '@chakra-ui/react'
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useContractRead, useAccount as useEthereumAccount } from 'wagmi';
+import { useContractRead, useAccount as useEthereumAccount, usePrepareContractWrite, useContractWrite, useWaitForTransaction } from 'wagmi';
 import { utils, Contract, Provider } from 'koilib';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import Nav from '../components/Nav'
 import Section from '../components/Section'
 import WalletConnector from "../components/KondorConnector";
 import { useAccount as useKoinosAccount } from "../context/AccountProvider";
 
 import ethereumBridgeAbi from '../contracts/abi/Ethereum-Bridge.json';
+import useDebounce from '../hooks/useDebounce';
 
 const koinosProvider = new Provider('https://harbinger-api.koinos.io');
 
@@ -34,6 +36,8 @@ interface Asset {
   name: string;
   ethereumAddress: string;
   koinosAddress: string;
+  ethDecimals: number
+  koinosDecimals: number
 }
 
 const assets: Record<string, Asset> = {
@@ -41,6 +45,8 @@ const assets: Record<string, Asset> = {
     id: 'koin',
     symbol: 'tKOIN',
     name: 'Koin',
+    koinosDecimals: 8,
+    ethDecimals: 8,
     ethereumAddress: '0xeA756978B2D8754b0f92CAc325880aa13AF38f88',
     koinosAddress: '19JntSm8pSNETT9aHTwAUHC5RMoaSmgZPJ'
   },
@@ -48,6 +54,8 @@ const assets: Record<string, Asset> = {
     id: 'weth',
     symbol: 'wETH',
     name: 'Wrapped Ether',
+    ethDecimals: 18,
+    koinosDecimals: 8,
     ethereumAddress: '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
     koinosAddress: '1KazZFUnZSLjeXq2QrifdnYqiBvA7RVF3G'
   }
@@ -58,11 +66,14 @@ interface State {
   chainTo: Chain
   asset: Asset
   amount: string
+  formattedAmount: string
   recipient: string | undefined
   ethereumTokenBalance: string | undefined
   koinosTokenBalance: string | undefined
   koinosTokenContract: Contract
   overrideRecipient: boolean
+  transactionId: string | undefined
+  timeout: NodeJS.Timeout | undefined
 }
 
 const initialState: State = {
@@ -70,6 +81,7 @@ const initialState: State = {
   chainTo: chains['ethereum'],
   asset: assets['koin'],
   amount: '0',
+  formattedAmount: '0',
   recipient: '',
   ethereumTokenBalance: undefined,
   koinosTokenBalance: undefined,
@@ -78,11 +90,15 @@ const initialState: State = {
     abi: utils.tokenAbi,
     provider: koinosProvider,
   }),
-  overrideRecipient: false
+  overrideRecipient: false,
+  transactionId: '',
+  timeout: undefined
 }
 
 export default function Home() {
   const [state, setState] = useState(initialState)
+  const toast = useToast();
+
   const { address: ethereumAddress } = useEthereumAccount();
   const { account: koinosAddress } = useKoinosAccount();
 
@@ -139,6 +155,25 @@ export default function Home() {
     })
   }
 
+  const handleTransactionIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setState({
+      ...state,
+      transactionId: event.target.value
+    })
+  }
+
+  const handleAmountChange = (amount: string, _: number): void => {
+    let formattedAmount = '0'
+
+    if (state.chainFrom.id === 'koinos') {
+      formattedAmount = utils.parseUnits(amount, state.asset.koinosDecimals)
+    } else if (state.chainFrom.id === 'ethereum') {
+      formattedAmount = utils.parseUnits(amount, state.asset.ethDecimals)
+    }
+
+    setState({ ...state, amount, formattedAmount })
+  }
+
   const { data: ethTokenBalanceData } = useContractRead({
     address: state.asset.ethereumAddress,
     abi: [
@@ -169,9 +204,10 @@ export default function Home() {
 
   useEffect(() => {
     if (ethTokenBalanceData) {
+      console.log(ethTokenBalanceData.toString())
       setState((state) => ({
         ...state,
-        ethereumTokenBalance: utils.formatUnits(ethTokenBalanceData.toString(), 8)
+        ethereumTokenBalance: utils.formatUnits(ethTokenBalanceData.toString(), state.asset.ethDecimals)
       }))
     }
 
@@ -183,8 +219,8 @@ export default function Home() {
         const { result: balanceOfResult } = await state.koinosTokenContract.functions.balanceOf<{ value: string }>({
           owner
         })
-    
-        return utils.formatUnits(balanceOfResult?.value!, 8)
+
+        return utils.formatUnits(balanceOfResult?.value!, state.asset.koinosDecimals)
       }
 
       getBalance(koinosAddress)
@@ -196,7 +232,7 @@ export default function Home() {
         })
     }
 
-  }, [koinosAddress, state.koinosTokenContract.functions])
+  }, [koinosAddress, state.koinosTokenContract.functions, state.asset.koinosDecimals])
 
   useEffect(() => {
     setState((state) => {
@@ -216,19 +252,70 @@ export default function Home() {
     })
   }, [ethereumAddress, koinosAddress])
 
-  const onAmountChange = (amount: string, _: number): void => {
-    setState({ ...state, amount })
+  const debouncedAssetEthereumAddress = useDebounce(state.asset.ethereumAddress, 500)
+  const debouncedFormattedAmount = useDebounce(state.formattedAmount, 500)
+  const debouncedRecipient = useDebounce(state.recipient, 500)
+
+  const { config } = usePrepareContractWrite({
+    address: chains['ethereum'].bridgeAddress,
+    abi: ethereumBridgeAbi.abi,
+    functionName: 'transferTokens',
+    args: [debouncedAssetEthereumAddress, debouncedFormattedAmount, debouncedRecipient],
+    enabled: !!debouncedRecipient && !!debouncedAssetEthereumAddress && Number(debouncedFormattedAmount) > 0,
+  })
+
+  const { data, write, error: transferTokensError } = useContractWrite(config)
+
+  if (transferTokensError) {
+    console.error(transferTokensError)
   }
+
+  const { isLoading, isSuccess, error: ethTansactionError } = useWaitForTransaction({
+    hash: data?.hash,
+  })
+
+  if (ethTansactionError) {
+    console.error(ethTansactionError)
+  }
+
+  const initiateTransfer = () => {
+    if (state.chainFrom.id === 'ethereum') {
+      write?.()
+      setState({
+        ...state,
+        transactionId: data?.hash
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (state.transactionId) {
+
+      const timeout = setTimeout(async() => {
+        const url = state.chainFrom.id === 'koinos' ?
+        `https://roamin-projects.duckdns.org/api/GetKoinosTransaction?TransactionId=${state.transactionId}`
+        :
+        `https://roamin-projects.duckdns.org/api/GetEthereumTransaction?TransactionId=${state.transactionId}`
+  
+      try {
+        const result = await axios.get(url)
+        console.log(result)
+  
+        if (result.data.status !== 'signed' && result.data.status !== 'completed') {
+          
+        } else {
+          // submit signatures
+        }
+      } catch (error) {
+        console.error(error)
+      }
+      }, 1000);
+  
+      return () => clearTimeout(timeout);
+    }
+  }, [state.chainFrom.id, state.transactionId]);
 
   console.log('test')
-
-  let maxAmount = 0;
-
-  if (state.chainFrom.id === 'koinos') {
-    maxAmount = state.koinosTokenBalance ? parseInt(state.koinosTokenBalance) : 0
-  } else if (state.chainFrom.id === 'ethereum') {
-    maxAmount = state.ethereumTokenBalance ? parseInt(state.ethereumTokenBalance) : 0
-  }
 
   return (
     <Box minHeight="100vh">
@@ -281,10 +368,9 @@ export default function Home() {
               <NumberInput
                 id='amount'
                 value={state.amount}
-                onChange={onAmountChange}
+                onChange={handleAmountChange}
                 precision={8}
                 min={0}
-                max={maxAmount}
                 size="lg"
               >
                 <NumberInputField />
@@ -319,6 +405,44 @@ export default function Home() {
               />
             </FormControl>
           </Box>
+        </Section>
+        <br />
+        <Section heading="6. Initiate transfer">
+          <Button disabled={!write || isLoading} onClick={initiateTransfer}>
+            {isLoading ? 'Initiating transfer...' : 'Initiate transfer'}
+          </Button>
+          {isSuccess && (
+            <Box>
+              Successfully initiated the transfer. It will take at least 15 block confirmations for the validators to process it.
+              <Box>
+                <a href={`https://goerli.etherscan.io/tx/${state.transactionId}`}>See transaction on Etherscan</a>
+              </Box>
+            </Box>
+          )}
+        </Section>
+        <Section heading="7. Complete transfer">
+          <Box>
+            <FormControl>
+              <FormLabel htmlFor='transaction-id'>Transaction Id:</FormLabel>
+              <Input
+                id='transaction-id'
+                value={state.transactionId}
+                size="lg"
+                onChange={handleTransactionIdChange}
+              />
+            </FormControl>
+          </Box>
+          <Button disabled={!write || isLoading} onClick={initiateTransfer}>
+            {isLoading ? 'Completing transfer...' : 'Complete transfer'}
+          </Button>
+          {isSuccess && (
+            <Box>
+              Successfully completed the transfer
+              <Box>
+                <a href={`https://goerli.etherscan.io/tx/${state.transactionId}`}>Etherscan</a>
+              </Box>
+            </Box>
+          )}
         </Section>
       </Flex>
     </Box>
