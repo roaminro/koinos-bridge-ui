@@ -1,10 +1,13 @@
 import { Box, Flex, FormControl, FormLabel, Input, NumberInput, NumberInputField, Select, Text } from '@chakra-ui/react'
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useContractRead, useAccount as useEthereumAccount } from 'wagmi';
+import { utils } from 'koilib';
+import { useState, useEffect } from 'react';
 import Nav from '../components/Nav'
 import Section from '../components/Section'
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useContractRead, useAccount } from 'wagmi';
 import WalletConnector from "../components/KondorConnector";
-import { useState } from 'react';
+import { useAccount as useKoinosAccount } from "../context/AccountProvider";
+
 import ethereumBridgeAbi from '../contracts/abi/Ethereum-Bridge.json';
 
 const ETHEREUM_BRIDGE_ADDR = '0x47940D3089Da6DC306678109c834718AEF23A201';
@@ -52,29 +55,44 @@ interface State {
   chainTo: Chain
   asset: Asset
   amount: string
+  recipient: string | undefined
+  ethereumTokenBalance: string | undefined
+  koinosTokenBalance: string | undefined
 }
 
 const initialState: State = {
   chainFrom: chains['koinos'],
   chainTo: chains['ethereum'],
   asset: assets['koin'],
-  amount: '0'
+  amount: '0',
+  recipient: '',
+  ethereumTokenBalance: undefined,
+  koinosTokenBalance: undefined
 }
 
 export default function Home() {
   const [state, setState] = useState(initialState)
-  const { address } = useAccount();
-
-  console.log(state)
+  const { address: ethereumAddress } = useEthereumAccount();
+  const { account: koinosAddress } = useKoinosAccount();
 
   const handleChainFromChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     switch (event.target.value) {
       case 'koinos': {
-        setState({ ...state, chainFrom: chains['koinos'], chainTo: chains['ethereum'] })
+        setState({
+          ...state,
+          chainFrom: chains['koinos'],
+          chainTo: chains['ethereum'],
+          recipient: ethereumAddress
+        })
         break;
       }
       case 'ethereum': {
-        setState({ ...state, chainFrom: chains['ethereum'], chainTo: chains['koinos'] })
+        setState({
+          ...state,
+          chainFrom: chains['ethereum'],
+          chainTo: chains['koinos'],
+          recipient: koinosAddress
+        })
         break;
       }
       default:
@@ -86,7 +104,7 @@ export default function Home() {
     setState({ ...state, asset: assets[event.target.value] })
   }
 
-  const { data: ethTokenBalance } = useContractRead({
+  const { data: ethTokenBalanceData } = useContractRead({
     address: state.asset.ethereumAddress,
     abi: [
       {
@@ -109,25 +127,56 @@ export default function Home() {
         "type": "function"
       },
     ],
-    args: address ? [address] : undefined,
+    args: ethereumAddress ? [ethereumAddress] : undefined,
     functionName: 'balanceOf',
-    enabled: !!address
+    enabled: !!ethereumAddress
   })
 
-  console.log(ethTokenBalance?.toString())
+  useEffect(() => {
+    if (ethTokenBalanceData) {
+      setState((state) => ({
+        ...state,
+        ethereumTokenBalance: utils.formatUnits(ethTokenBalanceData.toString(), 8)
+      }))
+    }
+
+  }, [setState, ethTokenBalanceData])
+
+  useEffect(() => {
+    setState((state) => {
+      if (state.chainFrom.id === 'koinos') {
+        return {
+          ...state,
+          recipient: ethereumAddress
+        }
+      } else if (state.chainFrom.id === 'ethereum') {
+        return {
+          ...state,
+          recipient: koinosAddress
+        }
+      } 
+      
+      return state
+    })
+  }, [setState, ethereumAddress, koinosAddress])
 
   const onAmountChange = (amount: string, _: number): void => {
     setState({ ...state, amount })
   }
+
+  console.log('test')
 
   return (
     <Box minHeight="100vh">
       <Nav />
       <Flex paddingLeft='100' paddingRight='100' marginTop='10' marginBottom='10' flexDirection='column'>
         <Section heading="1. Connect your wallets">
-          Ethereum Wallet: <ConnectButton />
+          Ethereum Wallet:
+          <ConnectButton />
           <br />
-          Koinos Wallet: <br /><WalletConnector />
+          Koinos Wallet:
+          <br />
+          <WalletConnector />
         </Section>
         <br />
         <Section heading="2. Transfer from">
@@ -167,15 +216,28 @@ export default function Home() {
                 onChange={onAmountChange}
                 precision={8}
                 min={0}
-                max={ethTokenBalance ? parseInt(ethTokenBalance.toString()) : 0}
+                max={state.ethereumTokenBalance ? parseInt(state.ethereumTokenBalance) : 0}
                 size="lg"
               >
                 <NumberInputField autoFocus />
               </NumberInput>
             </FormControl>
             <br />
-            <Text>Ethereum Balance: {ethTokenBalance?.toString()} {state.asset.symbol}</Text>
+            <Text>Ethereum Balance: {state.ethereumTokenBalance} {state.asset.symbol}</Text>
             <Text>Koinos Balance: { } {state.asset.symbol}</Text>
+          </Box>
+        </Section>
+        <br />
+        <Section heading="5. Enter the recipient">
+          <Box>
+            <FormControl>
+              <FormLabel>Recipient:</FormLabel>
+              <Input
+                value={state.recipient}
+                size="lg"
+                disabled={true}
+              />
+            </FormControl>
           </Box>
         </Section>
       </Flex>
