@@ -10,8 +10,6 @@ import { useAccount as useKoinosAccount } from "../context/AccountProvider";
 
 import ethereumBridgeAbi from '../contracts/abi/Ethereum-Bridge.json';
 
-const ETHEREUM_BRIDGE_ADDR = '0x47940D3089Da6DC306678109c834718AEF23A201';
-
 const koinosProvider = new Provider('https://harbinger-api.koinos.io');
 
 interface Chain {
@@ -289,7 +287,7 @@ export default function Home() {
                 max={maxAmount}
                 size="lg"
               >
-                <NumberInputField autoFocus />
+                <NumberInputField />
               </NumberInput>
             </FormControl>
             <br />
