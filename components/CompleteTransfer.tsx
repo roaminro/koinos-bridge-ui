@@ -1,42 +1,19 @@
-import { Dispatch, SetStateAction } from 'react'
-import { Box, Button, FormControl, FormLabel, Input, Link, NumberInput, NumberInputField, Switch, Text, useToast } from '@chakra-ui/react'
+import { Dispatch, SetStateAction, useState } from 'react'
+import { Box, Button, FormControl, FormLabel, Input, Link, useToast } from '@chakra-ui/react'
 import axios, { AxiosError } from 'axios'
-import * as kondor from 'kondor-js'
 
-import koinosBridgeAbiJson from '../contracts/abi/Koinos-Bridge.json'
-
-import { useAccount as useKoinosAccount } from '../context/AccountProvider'
-
-import { chains, State } from '../pages'
+import { State } from '../pages'
 import Section from './Section'
-import { Signer, Contract } from 'koilib'
-import { Abi } from 'koilib/lib/interface'
 
 interface CompleteTransferProps {
   state: State,
   setState: Dispatch<SetStateAction<State>>
 }
 
-const koinosBridgeAbi: Abi = {
-  koilib_types: koinosBridgeAbiJson.types,
-  ...koinosBridgeAbiJson
-}
-
 export default function CompleteTransfer({ state, setState }: CompleteTransferProps) {
+  const [koinosIsCompletingTransfer, setKoinosIsCompletingTransfer] = useState(false)
 
-  const toast = useToast()
-  const { account: koinosAddress } = useKoinosAccount()
-
-
-  const koinosSigner = koinosAddress ? kondor.getSigner(koinosAddress) as Signer : undefined
-
-  const koinosBridgeContract = new Contract({
-    id: chains['koinos'].bridgeAddress,
-    abi: koinosBridgeAbi,
-    provider: state.koinosProvider,
-    signer: koinosSigner,
-  })
-  
+  const toast = useToast()  
   const handleTransactionIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setState({
       ...state,
@@ -45,7 +22,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
   }
 
   const completeTransfer = async () => {
-    setState({ ...state, isCompletingTransfer: true })
+    setKoinosIsCompletingTransfer(true)
     if (state.transactionId) {
       const url = state.chainFrom.id === 'koinos' ?
         `https://roamin-projects.duckdns.org/api/GetKoinosTransaction?TransactionId=${state.transactionId}`
@@ -58,7 +35,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
 
         if (result.data.status === 'signed') {
           if (state.chainFrom.id === 'ethereum') {
-            const { transaction } = await koinosBridgeContract.functions.complete_transfer({
+            const { transaction } = await state.koinosBridgeContract.functions.complete_transfer({
               transactionId: result.data.id,
               token: result.data.koinosToken,
               recipient: result.data.recipient,
@@ -69,10 +46,10 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
               sendTransaction: false
             })
 
-            const { receipt, transaction: finalTransacaction } = await state.koinosProvider.sendTransaction(transaction!)
+            const { receipt, transaction: finalTransaction } = await state.koinosProvider.sendTransaction(transaction!)
 
             console.log(receipt)
-            await finalTransacaction.wait()
+            await finalTransaction.wait()
 
             toast({
               title: 'Transfer completed',
@@ -102,7 +79,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
         }
       }
     }
-    setState({ ...state, isCompletingTransfer: false })
+    setKoinosIsCompletingTransfer(false)
   }
 
   return (
@@ -124,8 +101,8 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
             </Box>
           )}
           <br />
-          <Button disabled={state.isCompletingTransfer} onClick={completeTransfer}>
-            {state.isCompletingTransfer ? 'Completing transfer...' : 'Complete transfer'}
+          <Button disabled={koinosIsCompletingTransfer} onClick={completeTransfer}>
+            {koinosIsCompletingTransfer ? 'Completing transfer...' : 'Complete transfer'}
           </Button>
         </Section>
   )

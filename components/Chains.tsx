@@ -16,7 +16,6 @@ export default function Chains({ state, setState }: ChainsProps) {
   const { address: ethereumAddress } = useEthereumAccount()
   const { account: koinosAddress } = useKoinosAccount()
 
-
   const handleChainFromChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     switch (event.target.value) {
       case 'koinos': {
@@ -41,24 +40,6 @@ export default function Chains({ state, setState }: ChainsProps) {
         break
     }
   }
-
-  useEffect(() => {
-    setState((state) => {
-      if (state.chainFrom.id === 'koinos') {
-        return {
-          ...state,
-          recipient: ethereumAddress
-        }
-      } else if (state.chainFrom.id === 'ethereum') {
-        return {
-          ...state,
-          recipient: koinosAddress
-        }
-      }
-
-      return state
-    })
-  }, [ethereumAddress, koinosAddress, setState])
 
   return (
     <Section heading="2. Transfer from">

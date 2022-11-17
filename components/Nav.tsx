@@ -17,7 +17,7 @@ export default function Nav() {
       <Box bg={useColorModeValue('gray.300', 'gray.700')} px={4}>
         <Flex h={16} alignItems={'center'} justifyContent={'space-between'}>
           <Heading as='h3' size='md'>
-            The Bridge
+            The Bridge (testnet)
           </Heading>
 
           <Flex alignItems={'center'}>

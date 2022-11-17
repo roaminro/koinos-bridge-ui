@@ -1,8 +1,8 @@
-import { Dispatch, SetStateAction } from "react";
-import { Box, FormControl, FormLabel, Input, NumberInput, NumberInputField, Switch, Text } from "@chakra-ui/react";
+import { Dispatch, SetStateAction, useState } from 'react'
+import { Box, FormControl, FormLabel, Input, Switch } from '@chakra-ui/react'
 
-import { State } from "../pages";
-import Section from "./Section";
+import { State } from '../pages'
+import Section from './Section'
 
 interface RecipientProps {
   state: State,
@@ -10,12 +10,10 @@ interface RecipientProps {
 }
 
 export default function Recipient({ state, setState }: RecipientProps) {
+  const [overrideRecipient, setOverrideRecipient] = useState(false)
 
   const handleOverrideRecipientChange = (_: React.ChangeEvent<HTMLInputElement>) => {
-    setState({
-      ...state,
-      overrideRecipient: !state.overrideRecipient
-    })
+    setOverrideRecipient(!overrideRecipient)
   }
 
   const handleRecipientChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,7 +32,7 @@ export default function Recipient({ state, setState }: RecipientProps) {
             id='recipient'
             value={state.recipient}
             size="lg"
-            disabled={!state.overrideRecipient}
+            disabled={!overrideRecipient}
             onChange={handleRecipientChange}
           />
         </FormControl>
@@ -44,7 +42,7 @@ export default function Recipient({ state, setState }: RecipientProps) {
           </FormLabel>
           <Switch
             id='override-recipient'
-            checked={state.overrideRecipient}
+            checked={overrideRecipient}
             onChange={handleOverrideRecipientChange}
           />
         </FormControl>

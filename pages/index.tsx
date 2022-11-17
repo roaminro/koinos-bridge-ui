@@ -1,5 +1,6 @@
 import { Box, Flex } from '@chakra-ui/react'
 import { utils, Contract, Provider } from 'koilib'
+import { Abi } from 'koilib/lib/interface'
 import { useState } from 'react'
 
 import Nav from '../components/Nav'
@@ -10,6 +11,12 @@ import Amount from '../components/Amount'
 import Recipient from '../components/Recipient'
 import InitiateTransfer from '../components/InitiateTransfer'
 import CompleteTransfer from '../components/CompleteTransfer'
+import koinosBridgeAbiJson from '../contracts/abi/Koinos-Bridge.json'
+
+const koinosBridgeAbi: Abi = {
+  koilib_types: koinosBridgeAbiJson.types,
+  ...koinosBridgeAbiJson
+}
 
 const koinosProvider = new Provider('https://harbinger-api.koinos.io')
 
@@ -66,13 +73,12 @@ export interface State {
   asset: Asset
   amount: string
   formattedAmount: string
-  recipient: string | undefined
-  ethereumTokenBalance: string | undefined
-  koinosTokenBalance: string | undefined
+  recipient?: string
+  ethereumTokenBalance?: string
+  koinosTokenBalance?: string
   koinosTokenContract: Contract
-  overrideRecipient: boolean
+  koinosBridgeContract: Contract
   transactionId: string | undefined
-  isCompletingTransfer: boolean,
   koinosProvider: Provider
 }
 
@@ -90,9 +96,12 @@ const initialState: State = {
     abi: utils.tokenAbi,
     provider: koinosProvider,
   }),
-  overrideRecipient: false,
+  koinosBridgeContract: new Contract({
+    id: assets['koin'].koinosAddress,
+    abi: koinosBridgeAbi,
+    provider: koinosProvider,
+  }),
   transactionId: '',
-  isCompletingTransfer: false,
   koinosProvider: koinosProvider
 }
 
@@ -105,7 +114,7 @@ export default function Home() {
     <Box minHeight="100vh">
       <Nav />
       <Flex paddingLeft='100' paddingRight='100' marginTop='10' marginBottom='10' flexDirection='column'>
-        <Wallets />
+        <Wallets state={state} setState={setState} />
         <br />
         <Chains state={state} setState={setState} />
         <br />
