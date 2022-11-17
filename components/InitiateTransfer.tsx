@@ -1,11 +1,10 @@
-import { Dispatch, SetStateAction, useEffect, useState } from 'react'
-import { Box, Button, Link } from '@chakra-ui/react'
-import { usePrepareContractWrite, useContractWrite, useWaitForTransaction } from 'wagmi'
+import { Dispatch, SetStateAction, useState } from 'react'
+import { Box, Button, Link, useToast } from '@chakra-ui/react'
+import { useAccount as useEthereumAccount, useContract, useSigner } from 'wagmi'
 import { ethers } from 'ethers'
 
 import { chains, State } from '../pages'
 import Section from './Section'
-import useDebounce from '../hooks/useDebounce'
 import { useAccount as useKoinosAccount } from '../context/AccountProvider'
 
 import ethereumBridgeAbi from '../contracts/abi/Ethereum-Bridge.json'
@@ -16,87 +15,24 @@ interface InitiateTransferProps {
 }
 
 export default function InitiateTransfer({ state, setState }: InitiateTransferProps) {
+  const { address: ethereumAddress } = useEthereumAccount()
   const { account: koinosAddress } = useKoinosAccount()
+  const toast = useToast()
 
-  const [koinosTransferIsLoading, setKoinosTransferIsLoading] = useState(false)
-  const [koinosTransferIsSuccess, setKoinosTransferIsSuccess] = useState(false)
+  const [showApproveERC20Button, setShowApproveERC20Button] = useState(false)
+  const [approveEthTransferIsLoading, setApproveEthTransferIsLoading] = useState(false)
+  const [transferIsLoading, setTransferIsLoading] = useState(false)
+  const [transferIsSuccess, setTransferIsSuccess] = useState(false)
 
-  const debouncedEthereumAddress = useDebounce(state.asset.ethereumAddress, 500)
-  const debouncedFormattedAmount = useDebounce(state.formattedAmount, 500)
-  const debouncedRecipient = useDebounce(state.recipient, 500)
+  const { data: ethSigner } = useSigner()
 
-  const { config: ethTransferTokensConfig, error: ethPrepareTransferTokensError } = usePrepareContractWrite({
+  const ethBridgeContract = useContract({
     address: chains['ethereum'].bridgeAddress,
     abi: ethereumBridgeAbi.abi,
-    functionName: 'transferTokens',
-    args: [debouncedEthereumAddress, debouncedFormattedAmount, debouncedRecipient],
-    enabled: state.chainFrom.id === 'ethereum' && !!debouncedRecipient && !!debouncedEthereumAddress && Number(debouncedFormattedAmount) > 0,
+    signerOrProvider: ethSigner
   })
 
-  let showApproveERC20Button = false
-  if (ethPrepareTransferTokensError) {
-    // @ts-ignore 'reason' here exists on the error object
-    if (ethPrepareTransferTokensError.reason?.includes('execution reverted: ERC20: transfer amount exceeds allowance')) {
-      showApproveERC20Button = true
-    }
-  }
-
-  const { data: ethTransferTokensData, write: ethTransferTokens, error: ethTransferTokensError } = useContractWrite(ethTransferTokensConfig)
-
-  if (ethTransferTokensError) {
-    console.error('transferTokensError', ethTransferTokensError)
-  }
-
-  useEffect(() => {
-    if (ethTransferTokensData?.hash) {
-      setState((state) => ({
-        ...state,
-        transactionId: ethTransferTokensData?.hash
-      }))
-    }
-  }, [ethTransferTokensData?.hash, setState])
-
-  const { isLoading: ethTransferIsLoading, isSuccess: ethTransferIsSuccess, error: ethTansactionError } = useWaitForTransaction({
-    hash: ethTransferTokensData?.hash
-  })
-
-  if (ethTansactionError) {
-    console.error('ethTansactionError', ethTansactionError)
-  }
-
-  const initiateTransfer = async () => {
-    setKoinosTransferIsSuccess(false)
-    if (state.chainFrom.id === 'ethereum') {
-      ethTransferTokens?.()
-    } else if (state.chainFrom.id === 'koinos') {
-      setKoinosTransferIsLoading(true)
-      try {
-        const { transaction } = await state.koinosBridgeContract.functions.transfer_tokens({
-          from: koinosAddress,
-          token: state.asset.koinosAddress,
-          amount: state.formattedAmount,
-          recipient: state.recipient
-        }, {
-          sendTransaction: false
-        })
-  
-        const { receipt, transaction: finalTransaction } = await state.koinosProvider.sendTransaction(transaction!)
-        setState({
-          ...state,
-          transactionId: finalTransaction.id
-        })
-        console.log(receipt)
-        await finalTransaction.wait()
-
-        setKoinosTransferIsSuccess(true)
-      } catch (error) {
-        console.error(error)
-      }
-      setKoinosTransferIsLoading(false)
-    }
-  }
-
-  const { config: approveTransferTokensConfig, error: preprateApproveTransferTokensError } = usePrepareContractWrite({
+  const ethTokenContract = useContract({
     address: state.asset.ethereumAddress,
     abi: [
       {
@@ -122,53 +58,146 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
         ],
         'stateMutability': 'nonpayable',
         'type': 'function'
-      }
+      },
+      {
+        'inputs': [
+          {
+            'internalType': 'address',
+            'name': 'owner',
+            'type': 'address'
+          },
+          {
+            'internalType': 'address',
+            'name': 'spender',
+            'type': 'address'
+          }
+        ],
+        'name': 'allowance',
+        'outputs': [
+          {
+            'internalType': 'uint256',
+            'name': '',
+            'type': 'uint256'
+          }
+        ],
+        'stateMutability': 'view',
+        'type': 'function'
+      },
     ],
-    functionName: 'approve',
-    //@ts-ignore 'bridgeAddress' is in the correct format
-    args: [chains['ethereum'].bridgeAddress, ethers.constants.MaxUint256],
-    enabled: state.chainFrom.id === 'ethereum' && showApproveERC20Button,
+    signerOrProvider: ethSigner
   })
 
-  if (preprateApproveTransferTokensError) {
-    console.error('preprateApproveTransferTokensError', preprateApproveTransferTokensError)
-  }
-
-  const { data: approveTransferTokenData, write: approveTransferToken, error: approveTransferTokensError } = useContractWrite(approveTransferTokensConfig)
-
-  if (approveTransferTokensError) {
-    console.error('approveTransferTokensError', approveTransferTokensError)
-  }
-
-  const { isLoading: approveTransferTokenLoading, isSuccess: isApproveTransferTokenSuccess, error: ethApproveTransferTokensTansactionError } = useWaitForTransaction({
-    hash: approveTransferTokenData?.hash
-  })
-
-  if (ethApproveTransferTokensTansactionError) {
-    console.error('ethApproveTransferTokensTansactionError', ethApproveTransferTokensTansactionError)
-  }
-
-  if (showApproveERC20Button && isApproveTransferTokenSuccess) {
-    showApproveERC20Button = false
-  }
-
-  const approveTokenTransferClick = () => {
+  const initiateTransfer = async () => {
+    setTransferIsSuccess(false)
+    setShowApproveERC20Button(false)
+    setTransferIsLoading(true)
     if (state.chainFrom.id === 'ethereum') {
-      approveTransferToken?.()
+      try {
+
+        const allowance = await ethTokenContract!.allowance(
+          //@ts-ignore ethereumAddress is a valid format
+          ethereumAddress,
+          chains['ethereum'].bridgeAddress
+        )
+
+        if (allowance.isZero() || allowance.lt(state.amount)) {
+          setShowApproveERC20Button(true)
+          toast({
+            title: 'Failed to initiate transfer',
+            description: 'You need to approve the transfer first',
+            status: 'error',
+            isClosable: true,
+          })
+        } else {
+          const tx = await ethBridgeContract!.transferTokens(
+            state.asset.ethereumAddress,
+            state.formattedAmount,
+            state.recipient
+          )
+
+          await tx.wait()
+          console.log(tx)
+          setState({
+            ...state,
+            transactionId: tx.hash
+          })
+          setTransferIsSuccess(true)
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    } else if (state.chainFrom.id === 'koinos') {
+      try {
+        const { transaction } = await state.koinosBridgeContract.functions.transfer_tokens({
+          from: koinosAddress,
+          token: state.asset.koinosAddress,
+          amount: state.formattedAmount,
+          recipient: state.recipient
+        }, {
+          sendTransaction: false
+        })
+
+        const { receipt, transaction: finalTransaction } = await state.koinosProvider.sendTransaction(transaction!)
+        setState({
+          ...state,
+          transactionId: finalTransaction.id
+        })
+        console.log(receipt)
+        await finalTransaction.wait()
+
+        setTransferIsSuccess(true)
+
+        toast({
+          title: 'Transfer initiated',
+          description: 'Your transfer was successfully initiated!',
+          status: 'success',
+          isClosable: true,
+        })
+      } catch (error) {
+        console.error(error)
+      }
     }
+    setTransferIsLoading(false)
+  }
+
+  const approveTokenTransfer = async () => {
+    if (state.chainFrom.id === 'ethereum') {
+      setApproveEthTransferIsLoading(true)
+      try {
+        const tx = await ethTokenContract!.approve(
+          // @ts-ignore bridgeAddress is the correct format
+          chains['ethereum'].bridgeAddress,
+          ethers.constants.MaxUint256
+        )
+
+        await tx.wait()
+        console.log(tx)
+        setShowApproveERC20Button(false)
+      } catch (error) {
+        console.error(error)
+      }
+      setApproveEthTransferIsLoading(false)
+    }
+  }
+
+  let canInitiateTransfer = parseFloat(state.amount) !== 0
+  if (canInitiateTransfer && state.chainFrom.id === 'koinos') {
+    canInitiateTransfer = parseFloat(state.koinosTokenBalance!) >= parseFloat(state.amount)
+  } else if (canInitiateTransfer && state.chainFrom.id === 'ethereum') {
+    canInitiateTransfer = parseFloat(state.ethereumTokenBalance!) >= parseFloat(state.amount)
   }
 
   return (
     <Section heading="6. Initiate transfer">
       {showApproveERC20Button && (
-        <Button disabled={approveTransferTokenLoading} onClick={approveTokenTransferClick}>
-          {approveTransferTokenLoading ? 'Approving token transfer...' : 'Approve token transfer'}
+        <Button disabled={approveEthTransferIsLoading} onClick={approveTokenTransfer}>
+          {approveEthTransferIsLoading ? 'Approving token transfer...' : 'Approve token transfer'}
         </Button>
       )}
-      <Button disabled={!!ethPrepareTransferTokensError || ethTransferIsLoading || showApproveERC20Button || koinosTransferIsLoading} onClick={initiateTransfer}>
-        {ethTransferIsLoading || koinosTransferIsLoading ? 'Initiating transfer...' : 'Initiate transfer'}
+      <Button disabled={!canInitiateTransfer || transferIsLoading || showApproveERC20Button} onClick={initiateTransfer}>
+        {transferIsLoading ? 'Initiating transfer...' : 'Initiate transfer'}
       </Button>
-      {ethTransferIsSuccess && (
+      {transferIsSuccess && state.chainFrom.id === 'ethereum' && (
         <Box>
           Successfully initiated the transfer. It will take at least 15 block confirmations for the validators to process it.
           <Box>
@@ -176,7 +205,7 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
           </Box>
         </Box>
       )}
-      {koinosTransferIsSuccess && (
+      {transferIsSuccess && state.chainFrom.id === 'koinos' && (
         <Box>
           Successfully initiated the transfer. It will take at least 60 blocks for the validators to process it.
           <Box>
