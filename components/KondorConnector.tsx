@@ -1,7 +1,7 @@
-import { Button, Text, Tooltip, useToast } from "@chakra-ui/react";
-import { useAccount } from "../context/AccountProvider";
-import { createAvatar } from "@dicebear/avatars";
-import * as identiconStyle from "@dicebear/avatars-identicon-sprites";
+import { Button, Text, Tooltip, useToast } from '@chakra-ui/react'
+import { useAccount } from '../context/AccountProvider'
+import { createAvatar } from '@dicebear/avatars'
+import * as identiconStyle from '@dicebear/avatars-identicon-sprites'
 
 interface ConnectorProps {
   onConnect?: () => void;
@@ -11,38 +11,38 @@ interface ConnectorProps {
 
 export default function KondorConnector({
   onConnect,
-  size = "md",
+  size = 'md',
   connectedVariant,
 }: ConnectorProps) {
-  const { account, isConnecting, connect } = useAccount();
-  const toast = useToast();
+  const { account, isConnecting, connect } = useAccount()
+  const toast = useToast()
 
   const connectCallback = async () => {
-    const connected = await connect();
+    const connected = await connect()
 
     if (!connected) {
       toast({
-        title: `Failed to connect with Kondor`,
-        description: `Please check that you have Kondor installed in this browser and try again.`,
-        status: "error",
+        title: 'Failed to connect with Kondor',
+        description: 'Please check that you have Kondor installed in this browser and try again.',
+        status: 'error',
         isClosable: true,
-      });
-      return;
+      })
+      return
     }
 
     if (onConnect) {
-      onConnect();
+      onConnect()
     }
-  };
+  }
 
-  const identicon = createAvatar(identiconStyle, { seed: account });
+  const identicon = createAvatar(identiconStyle, { seed: account })
 
   return account ? (
     connectedVariant || (
       <Tooltip
         label={
           isConnecting ? (
-            "Connecting to Kondor..."
+            'Connecting to Kondor...'
           ) : (
             <>
               <Text>{account}</Text>
@@ -64,12 +64,12 @@ export default function KondorConnector({
           <span
             dangerouslySetInnerHTML={{ __html: identicon }}
             style={{
-              display: "block",
-              width: "18px",
-              height: "18px",
-              marginRight: "10px",
+              display: 'block',
+              width: '18px',
+              height: '18px',
+              marginRight: '10px',
             }}
-          />{" "}
+          />{' '}
           {account.substring(0, 4)}...{account.substring(account.length - 4)}
         </Button>
       </Tooltip>
@@ -86,5 +86,5 @@ export default function KondorConnector({
     >
       Connect with Kondor
     </Button>
-  );
+  )
 }

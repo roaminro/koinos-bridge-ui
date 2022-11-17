@@ -1,5 +1,5 @@
-import { Box, GridItem, Text } from "@chakra-ui/react";
-import { ReactNode } from "react";
+import { Box, GridItem, Text } from '@chakra-ui/react'
+import { ReactNode } from 'react'
 
 interface SectionProps {
   heading?: string;
@@ -21,5 +21,5 @@ export default function Section({ heading, children, colspan = 1, rowspan = 1 }:
         {children}
       </Box>
     </GridItem>
-  );
+  )
 }
