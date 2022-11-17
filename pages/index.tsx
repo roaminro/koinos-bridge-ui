@@ -1,16 +1,27 @@
-import { Box, Button, Flex, FormControl, FormLabel, Input, NumberInput, NumberInputField, Select, Switch, Text, useToast } from '@chakra-ui/react'
+import { Box, Button, Flex, FormControl, FormLabel, Input, Link, NumberInput, NumberInputField, Select, Switch, Text, useToast } from '@chakra-ui/react'
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useContractRead, useAccount as useEthereumAccount, usePrepareContractWrite, useContractWrite, useWaitForTransaction } from 'wagmi';
-import { utils, Contract, Provider } from 'koilib';
+import { utils, Contract, Provider, Signer } from 'koilib';
+import * as kondor from "kondor-js";
+import { Abi } from "koilib/lib/interface";
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+import { ethers } from 'ethers';
 import Nav from '../components/Nav'
 import Section from '../components/Section'
 import WalletConnector from "../components/KondorConnector";
 import { useAccount as useKoinosAccount } from "../context/AccountProvider";
 
 import ethereumBridgeAbi from '../contracts/abi/Ethereum-Bridge.json';
+import koinosBridgeAbiJson from '../contracts/abi/Koinos-Bridge.json';
+
+const koinosBridgeAbi: Abi = {
+  koilib_types: koinosBridgeAbiJson.types,
+  ...koinosBridgeAbiJson
+};
+
 import useDebounce from '../hooks/useDebounce';
+import { BigNumber } from 'ethers';
 
 const koinosProvider = new Provider('https://harbinger-api.koinos.io');
 
@@ -73,7 +84,7 @@ interface State {
   koinosTokenContract: Contract
   overrideRecipient: boolean
   transactionId: string | undefined
-  timeout: NodeJS.Timeout | undefined
+  isCompletingTransfer: boolean,
 }
 
 const initialState: State = {
@@ -83,8 +94,8 @@ const initialState: State = {
   amount: '0',
   formattedAmount: '0',
   recipient: '',
-  ethereumTokenBalance: undefined,
-  koinosTokenBalance: undefined,
+  ethereumTokenBalance: '0',
+  koinosTokenBalance: '0',
   koinosTokenContract: new Contract({
     id: assets['koin'].koinosAddress,
     abi: utils.tokenAbi,
@@ -92,7 +103,7 @@ const initialState: State = {
   }),
   overrideRecipient: false,
   transactionId: '',
-  timeout: undefined
+  isCompletingTransfer: false,
 }
 
 export default function Home() {
@@ -101,6 +112,16 @@ export default function Home() {
 
   const { address: ethereumAddress } = useEthereumAccount();
   const { account: koinosAddress } = useKoinosAccount();
+
+  const koinosSigner = koinosAddress ? kondor.getSigner(koinosAddress) as Signer : undefined;
+
+  const koinosBridgeContract = new Contract({
+    id: chains['koinos'].bridgeAddress,
+    abi: koinosBridgeAbi,
+    provider: koinosProvider,
+    signer: koinosSigner,
+  })
+
 
   const handleChainFromChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     switch (event.target.value) {
@@ -131,8 +152,9 @@ export default function Home() {
     setState({
       ...state,
       asset: assets[event.target.value],
-      koinosTokenBalance: '',
-      ethereumTokenBalance: '',
+      koinosTokenBalance: '0',
+      ethereumTokenBalance: '0',
+      amount: '0',
       koinosTokenContract: new Contract({
         id: assets[event.target.value].koinosAddress,
         abi: utils.tokenAbi,
@@ -163,16 +185,26 @@ export default function Home() {
   }
 
   const handleAmountChange = (amount: string, _: number): void => {
-    let formattedAmount = '0'
-
-    if (state.chainFrom.id === 'koinos') {
-      formattedAmount = utils.parseUnits(amount, state.asset.koinosDecimals)
-    } else if (state.chainFrom.id === 'ethereum') {
-      formattedAmount = utils.parseUnits(amount, state.asset.ethDecimals)
-    }
-
-    setState({ ...state, amount, formattedAmount })
+    setState({ ...state, amount })
   }
+
+  useEffect(() => {
+    setState((state) => {
+      let formattedAmount = '0'
+
+      if (state.chainFrom.id === 'koinos') {
+        formattedAmount = utils.parseUnits(state.amount, state.asset.koinosDecimals)
+      } else if (state.chainFrom.id === 'ethereum') {
+        formattedAmount = utils.parseUnits(state.amount, state.asset.ethDecimals)
+      }
+      console.log('formattedAmount', formattedAmount)
+
+      return {
+        ...state,
+        formattedAmount
+      }
+    })
+  }, [state.amount])
 
   const { data: ethTokenBalanceData } = useContractRead({
     address: state.asset.ethereumAddress,
@@ -204,7 +236,6 @@ export default function Home() {
 
   useEffect(() => {
     if (ethTokenBalanceData) {
-      console.log(ethTokenBalanceData.toString())
       setState((state) => ({
         ...state,
         ethereumTokenBalance: utils.formatUnits(ethTokenBalanceData.toString(), state.asset.ethDecimals)
@@ -256,7 +287,7 @@ export default function Home() {
   const debouncedFormattedAmount = useDebounce(state.formattedAmount, 500)
   const debouncedRecipient = useDebounce(state.recipient, 500)
 
-  const { config } = usePrepareContractWrite({
+  const { config: transferTokensConfig, error: prepareTransferTokenError } = usePrepareContractWrite({
     address: chains['ethereum'].bridgeAddress,
     abi: ethereumBridgeAbi.abi,
     functionName: 'transferTokens',
@@ -264,56 +295,165 @@ export default function Home() {
     enabled: !!debouncedRecipient && !!debouncedAssetEthereumAddress && Number(debouncedFormattedAmount) > 0,
   })
 
-  const { data, write, error: transferTokensError } = useContractWrite(config)
+  let showApproveERC20Button = false
+  if (prepareTransferTokenError) {
+    // @ts-ignore 'reason' here exists on the error object
+    if (prepareTransferTokenError.reason?.includes('execution reverted: ERC20: transfer amount exceeds allowance')) {
+      showApproveERC20Button = true
+    }
+  }
+
+  const { data: transferTokenData, write, error: transferTokensError } = useContractWrite(transferTokensConfig)
 
   if (transferTokensError) {
-    console.error(transferTokensError)
+    console.error('transferTokensError', transferTokensError)
   }
 
   const { isLoading, isSuccess, error: ethTansactionError } = useWaitForTransaction({
-    hash: data?.hash,
+    hash: transferTokenData?.hash
   })
 
   if (ethTansactionError) {
-    console.error(ethTansactionError)
+    console.error('ethTansactionError', ethTansactionError)
   }
+
+  useEffect(() => {
+    if (transferTokenData?.hash) {
+      setState((state) => ({
+        ...state,
+        transactionId: transferTokenData?.hash
+      }))
+    }
+  }, [transferTokenData?.hash])
 
   const initiateTransfer = () => {
     if (state.chainFrom.id === 'ethereum') {
       write?.()
-      setState({
-        ...state,
-        transactionId: data?.hash
-      })
     }
   }
 
-  useEffect(() => {
+  const completeTransfer = async () => {
+    setState({ ...state, isCompletingTransfer: true })
     if (state.transactionId) {
-
-      const timeout = setTimeout(async() => {
-        const url = state.chainFrom.id === 'koinos' ?
+      const url = state.chainFrom.id === 'koinos' ?
         `https://roamin-projects.duckdns.org/api/GetKoinosTransaction?TransactionId=${state.transactionId}`
         :
         `https://roamin-projects.duckdns.org/api/GetEthereumTransaction?TransactionId=${state.transactionId}`
-  
+
       try {
         const result = await axios.get(url)
-        console.log(result)
-  
-        if (result.data.status !== 'signed' && result.data.status !== 'completed') {
-          
-        } else {
-          // submit signatures
+        console.log(result.data)
+
+        if (result.data.status === 'signed') {
+          if (state.chainFrom.id === 'ethereum') {
+            const { transaction } = await koinosBridgeContract.functions.complete_transfer({
+              transactionId: result.data.id,
+              token: result.data.koinosToken,
+              recipient: result.data.recipient,
+              value: result.data.amount,
+              expiration: result.data.expiration,
+              signatures: result.data.signatures
+            }, {
+              sendTransaction: false
+            });
+
+            const { receipt, transaction: finalTransacaction } = await koinosProvider.sendTransaction(transaction!)
+
+            console.log(receipt)
+            await finalTransacaction.wait()
+
+            toast({
+              title: 'Transfer completed',
+              description: 'Your transfer was successfully completed!',
+              status: "success",
+              isClosable: true,
+            });
+          }
+        } else if (result.data.status === 'completed') {
+          toast({
+            title: 'Transfer completed',
+            description: 'Your transfer has already been successfully completed!',
+            status: "success",
+            isClosable: true,
+          });
         }
       } catch (error) {
-        console.error(error)
+        if ((error as AxiosError).response?.data === 'transaction does not exist') {
+          toast({
+            title: 'Failed to retrieve the status of the transaction',
+            description: 'Transaction has not yet been processed by the validators, please try again in a few minutes',
+            status: "warning",
+            isClosable: true,
+          });
+        } else {
+          console.error(error)
+        }
       }
-      }, 1000);
-  
-      return () => clearTimeout(timeout);
     }
-  }, [state.chainFrom.id, state.transactionId]);
+    setState({ ...state, isCompletingTransfer: false })
+  }
+
+  const { config: approveTransferTokensConfig, error: preprateApproveTransferTokensError } = usePrepareContractWrite({
+    address: state.asset.ethereumAddress,
+    abi: [
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "outputs": [
+          {
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ],
+    functionName: 'approve',
+    //@ts-ignore 'bridgeAddress' is in the correct format
+    args: [chains['ethereum'].bridgeAddress, ethers.constants.MaxUint256],
+    enabled: showApproveERC20Button,
+  })
+
+  if(preprateApproveTransferTokensError) {
+    console.error('preprateApproveTransferTokensError', preprateApproveTransferTokensError)
+  }
+
+  const { data: approveTransferTokenData, write: approveTransferToken, error: approveTransferTokensError } = useContractWrite(approveTransferTokensConfig)
+
+  if (approveTransferTokensError) {
+    console.error('approveTransferTokensError', approveTransferTokensError)
+  }
+
+  const { isLoading: approveTransferTokenLoading, isSuccess: isApproveTransferTokenSuccess, error: ethApproveTransferTokensTansactionError } = useWaitForTransaction({
+    hash: approveTransferTokenData?.hash
+  })
+
+  if (ethApproveTransferTokensTansactionError) {
+    console.error('ethApproveTransferTokensTansactionError', ethApproveTransferTokensTansactionError)
+  }
+
+  if (showApproveERC20Button && isApproveTransferTokenSuccess) {
+    showApproveERC20Button = false
+  }
+
+  const approveTokenTransfer = () => {
+    if (state.chainFrom.id === 'ethereum') {
+      approveTransferToken?.()
+    }
+  }
 
   console.log('test')
 
@@ -408,14 +548,19 @@ export default function Home() {
         </Section>
         <br />
         <Section heading="6. Initiate transfer">
-          <Button disabled={!write || isLoading} onClick={initiateTransfer}>
+          {showApproveERC20Button && (
+            <Button disabled={approveTransferTokenLoading} onClick={approveTokenTransfer}>
+              {approveTransferTokenLoading ? 'Approving token transfer...' : 'Approve token transfer'}
+            </Button>
+          )}
+          <Button disabled={!write || isLoading || showApproveERC20Button} onClick={initiateTransfer}>
             {isLoading ? 'Initiating transfer...' : 'Initiate transfer'}
           </Button>
           {isSuccess && (
             <Box>
               Successfully initiated the transfer. It will take at least 15 block confirmations for the validators to process it.
               <Box>
-                <a href={`https://goerli.etherscan.io/tx/${state.transactionId}`}>See transaction on Etherscan</a>
+                <Link href={`https://goerli.etherscan.io/tx/${state.transactionId}`} isExternal>See transaction status on Etherscan</Link>
               </Box>
             </Box>
           )}
@@ -432,17 +577,14 @@ export default function Home() {
               />
             </FormControl>
           </Box>
-          <Button disabled={!write || isLoading} onClick={initiateTransfer}>
-            {isLoading ? 'Completing transfer...' : 'Complete transfer'}
-          </Button>
-          {isSuccess && (
+          {state.transactionId && (
             <Box>
-              Successfully completed the transfer
-              <Box>
-                <a href={`https://goerli.etherscan.io/tx/${state.transactionId}`}>Etherscan</a>
-              </Box>
+              <Link href={`https://goerli.etherscan.io/tx/${state.transactionId}`} isExternal>See transaction status on Etherscan</Link>
             </Box>
           )}
+          <Button disabled={state.isCompletingTransfer} onClick={completeTransfer}>
+            {state.isCompletingTransfer ? 'Completing transfer...' : 'Complete transfer'}
+          </Button>
         </Section>
       </Flex>
     </Box>

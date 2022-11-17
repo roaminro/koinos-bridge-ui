@@ -1,0 +1,596 @@
+{
+    "methods": {
+        "initialize": {
+            "argument": "bridge.initialize_arguments",
+            "return": "bridge.empty_object",
+            "description": "Initialize contract",
+            "entry_point": 1192148610,
+            "read_only": false
+        },
+        "get_validators": {
+            "argument": "bridge.get_validators_arguments",
+            "return": "bridge.repeated_addresses",
+            "description": "Get validators",
+            "entry_point": 1342607250,
+            "read_only": true
+        },
+        "get_supported_tokens": {
+            "argument": "bridge.get_supported_tokens_arguments",
+            "return": "bridge.repeated_addresses",
+            "description": "Get supported tokens",
+            "entry_point": 3370348292,
+            "read_only": true
+        },
+        "get_supported_wrapped_tokens": {
+            "argument": "bridge.get_supported_wrapped_tokens_arguments",
+            "return": "bridge.repeated_addresses",
+            "description": "Get supported wrapped tokens",
+            "entry_point": 794036772,
+            "read_only": true
+        },
+        "get_metadata": {
+            "argument": "bridge.get_metadata_arguments",
+            "return": "bridge.metadata_object",
+            "description": "Get metadata",
+            "entry_point": 4244088463,
+            "read_only": true
+        },
+        "set_pause": {
+            "argument": "bridge.set_pause_arguments",
+            "return": "bridge.empty_object",
+            "description": "Pause/Unpause bridge",
+            "entry_point": 966968548,
+            "read_only": false
+        },
+        "transfer_tokens": {
+            "argument": "bridge.transfer_tokens_arguments",
+            "return": "bridge.empty_object",
+            "description": "Transfer tokens",
+            "entry_point": 489574387,
+            "read_only": false
+        },
+        "complete_transfer": {
+            "argument": "bridge.complete_transfer_arguments",
+            "return": "bridge.empty_object",
+            "description": "Complete a bridge transfer",
+            "entry_point": 1296908025,
+            "read_only": false
+        },
+        "add_validator": {
+            "argument": "bridge.add_validator_arguments",
+            "return": "bridge.empty_object",
+            "description": "Add a new validator",
+            "entry_point": 4229296574,
+            "read_only": false
+        },
+        "remove_validator": {
+            "argument": "bridge.remove_validator_arguments",
+            "return": "bridge.empty_object",
+            "description": "Remove an existing validator",
+            "entry_point": 4284612390,
+            "read_only": false
+        },
+        "add_supported_token": {
+            "argument": "bridge.add_supported_token_arguments",
+            "return": "bridge.empty_object",
+            "description": "Add support for a new token",
+            "entry_point": 3318614307,
+            "read_only": false
+        },
+        "remove_supported_token": {
+            "argument": "bridge.remove_supported_token_arguments",
+            "return": "bridge.empty_object",
+            "description": "Remove an existing supported token",
+            "entry_point": 758798718,
+            "read_only": false
+        },
+        "add_supported_wrapped_token": {
+            "argument": "bridge.add_supported_wrapped_token_arguments",
+            "return": "bridge.empty_object",
+            "description": "Add support for a new wrapped token",
+            "entry_point": 1415038487,
+            "read_only": false
+        },
+        "remove_supported_wrapped_token": {
+            "argument": "bridge.remove_supported_wrapped_token_arguments",
+            "return": "bridge.empty_object",
+            "description": "Remove an existing supported token",
+            "entry_point": 2457629973,
+            "read_only": false
+        },
+        "request_new_signatures": {
+            "argument": "bridge.request_new_signatures_arguments",
+            "return": "bridge.empty_object",
+            "description": "Request new signatures when old ones expired",
+            "entry_point": 2545674406,
+            "read_only": false
+        }
+    },
+    "types": {
+        "nested": {
+            "bridge": {
+                "nested": {
+                    "initialize_arguments": {
+                        "fields": {
+                            "initialValidators": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            }
+                        }
+                    },
+                    "get_validators_arguments": {
+                        "fields": {
+                            "start": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "limit": {
+                                "type": "int32",
+                                "id": 2
+                            },
+                            "direction": {
+                                "type": "int32",
+                                "id": 3
+                            }
+                        }
+                    },
+                    "get_supported_tokens_arguments": {
+                        "fields": {
+                            "start": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "limit": {
+                                "type": "int32",
+                                "id": 2
+                            },
+                            "direction": {
+                                "type": "uint32",
+                                "id": 3
+                            }
+                        }
+                    },
+                    "get_supported_wrapped_tokens_arguments": {
+                        "fields": {
+                            "start": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "limit": {
+                                "type": "int32",
+                                "id": 2
+                            },
+                            "direction": {
+                                "type": "uint32",
+                                "id": 3
+                            }
+                        }
+                    },
+                    "repeated_addresses": {
+                        "fields": {
+                            "addresses": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            }
+                        }
+                    },
+                    "get_metadata_arguments": {
+                        "fields": {}
+                    },
+                    "set_pause_arguments": {
+                        "fields": {
+                            "signatures": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 1
+                            },
+                            "pause": {
+                                "type": "bool",
+                                "id": 2
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 3,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "transfer_tokens_arguments": {
+                        "fields": {
+                            "from": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "token": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "CONTRACT_ID"
+                                }
+                            },
+                            "amount": {
+                                "type": "uint64",
+                                "id": 3,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            },
+                            "recipient": {
+                                "type": "string",
+                                "id": 4
+                            }
+                        }
+                    },
+                    "complete_transfer_arguments": {
+                        "fields": {
+                            "transactionId": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "TRANSACTION_ID"
+                                }
+                            },
+                            "token": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "CONTRACT_ID"
+                                }
+                            },
+                            "recipient": {
+                                "type": "bytes",
+                                "id": 3,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "value": {
+                                "type": "uint64",
+                                "id": 4,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            },
+                            "signatures": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 6
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 7,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "add_validator_arguments": {
+                        "fields": {
+                            "signatures": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 1
+                            },
+                            "validator": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 3,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "remove_validator_arguments": {
+                        "fields": {
+                            "signatures": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 1
+                            },
+                            "validator": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 3,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "add_supported_token_arguments": {
+                        "fields": {
+                            "signatures": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 1
+                            },
+                            "token": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "CONTRACT_ID"
+                                }
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 3,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "remove_supported_token_arguments": {
+                        "fields": {
+                            "signatures": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 1
+                            },
+                            "token": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "CONTRACT_ID"
+                                }
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 3,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "add_supported_wrapped_token_arguments": {
+                        "fields": {
+                            "signatures": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 1
+                            },
+                            "token": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "CONTRACT_ID"
+                                }
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 3,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "remove_supported_wrapped_token_arguments": {
+                        "fields": {
+                            "signatures": {
+                                "rule": "repeated",
+                                "type": "bytes",
+                                "id": 1
+                            },
+                            "token": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "CONTRACT_ID"
+                                }
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 3,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "request_new_signatures_arguments": {
+                        "fields": {
+                            "transactionId": {
+                                "type": "string",
+                                "id": 1
+                            },
+                            "operationId": {
+                                "type": "string",
+                                "id": 2
+                            }
+                        }
+                    },
+                    "tokens_locked_event": {
+                        "fields": {
+                            "from": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
+                            },
+                            "token": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "CONTRACT_ID"
+                                }
+                            },
+                            "amount": {
+                                "type": "string",
+                                "id": 3
+                            },
+                            "recipient": {
+                                "type": "string",
+                                "id": 4
+                            }
+                        }
+                    },
+                    "transfer_completed_event": {
+                        "fields": {
+                            "txId": {
+                                "type": "bytes",
+                                "id": 1,
+                                "options": {
+                                    "(koinos.btype)": "TRANSACTION_ID"
+                                }
+                            }
+                        }
+                    },
+                    "action_id": {
+                        "values": {
+                            "reserved_action": 0,
+                            "add_validator": 1,
+                            "remove_validator": 2,
+                            "add_supported_token": 3,
+                            "remove_supported_token": 4,
+                            "add_supported_wrapped_token": 5,
+                            "remove_supported_wrapped_token": 6,
+                            "set_pause": 7,
+                            "complete_transfer": 8
+                        }
+                    },
+                    "add_remove_action_hash": {
+                        "fields": {
+                            "action": {
+                                "type": "action_id",
+                                "id": 1
+                            },
+                            "address": {
+                                "type": "bytes",
+                                "id": 2
+                            },
+                            "nonce": {
+                                "type": "uint64",
+                                "id": 3
+                            },
+                            "contractId": {
+                                "type": "bytes",
+                                "id": 4
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 5
+                            }
+                        }
+                    },
+                    "set_pause_action_hash": {
+                        "fields": {
+                            "action": {
+                                "type": "action_id",
+                                "id": 1
+                            },
+                            "pause": {
+                                "type": "bool",
+                                "id": 2
+                            },
+                            "nonce": {
+                                "type": "uint64",
+                                "id": 3
+                            },
+                            "contractId": {
+                                "type": "bytes",
+                                "id": 4
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 5
+                            }
+                        }
+                    },
+                    "complete_transfer_hash": {
+                        "fields": {
+                            "action": {
+                                "type": "action_id",
+                                "id": 1
+                            },
+                            "transactionId": {
+                                "type": "bytes",
+                                "id": 2
+                            },
+                            "token": {
+                                "type": "bytes",
+                                "id": 3
+                            },
+                            "recipient": {
+                                "type": "bytes",
+                                "id": 4
+                            },
+                            "amount": {
+                                "type": "uint64",
+                                "id": 5
+                            },
+                            "contractId": {
+                                "type": "bytes",
+                                "id": 6
+                            },
+                            "expiration": {
+                                "type": "uint64",
+                                "id": 7
+                            }
+                        }
+                    },
+                    "metadata_object": {
+                        "fields": {
+                            "initialized": {
+                                "type": "bool",
+                                "id": 1
+                            },
+                            "nonce": {
+                                "type": "uint64",
+                                "id": 2,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            },
+                            "nbValidators": {
+                                "type": "uint32",
+                                "id": 3
+                            }
+                        }
+                    },
+                    "empty_object": {
+                        "fields": {}
+                    }
+                }
+            }
+        }
+    }
+}
