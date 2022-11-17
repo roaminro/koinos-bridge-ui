@@ -100,7 +100,7 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
           chains['ethereum'].bridgeAddress
         )
 
-        if (allowance.isZero() || allowance.lt(state.amount)) {
+        if (allowance.isZero() || allowance.lt(state.formattedAmount)) {
           setShowApproveERC20Button(true)
           toast({
             title: 'Failed to initiate transfer',
