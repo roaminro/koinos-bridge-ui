@@ -1,9 +1,9 @@
-import { Dispatch, SetStateAction } from "react";
-import { Box, FormControl, FormLabel, Select } from "@chakra-ui/react";
-import { Contract, utils } from "koilib";
+import { Dispatch, SetStateAction } from 'react'
+import { Box, FormControl, FormLabel, Select } from '@chakra-ui/react'
+import { Contract, utils } from 'koilib'
 
-import { State, assets } from "../pages";
-import Section from "./Section";
+import { State, assets } from '../pages'
+import Section from './Section'
 
 interface AssetsProps {
   state: State,
