@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useState } from 'react'
-import { Box, Button, FormControl, FormLabel, Input, Link, useToast } from '@chakra-ui/react'
+import { Box, Button, FormControl, FormErrorMessage, FormLabel, Input, Link, useToast } from '@chakra-ui/react'
 import axios, { AxiosError, AxiosResponse } from 'axios'
 import { useContract, useSigner } from 'wagmi'
 
@@ -97,26 +97,56 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
 
         if (result.data.status === 'signed') {
           const expiration = new Date(parseInt(result.data.expiration))
+          const now = new Date()
+          if (now >= expiration) {
+            const delta = now.getTime() - expiration.getTime()
 
-          if (new Date() >= expiration) {
-            toast({
-              title: 'Expired signatures',
-              description: 'The validators signatures have expired, please request new ones. If you already submitted a request, please try to complete the transfer again in a few minutes.',
-              status: 'error',
-              isClosable: true,
-            })
-            setNeedsNewSignatures(true)
+            if (delta < 3600000) {
+              const approximateRequestTime = Math.floor((3600000 - delta) / 1000 / 60)
+              toast({
+                title: 'Expired signatures',
+                description: `The validators signatures have expired, please request new ones in approximately ${approximateRequestTime} minutes.`,
+                status: 'error',
+                isClosable: true,
+              })
+            } else {
+              toast({
+                title: 'Expired signatures',
+                description: 'The validators signatures have expired, please request new ones. If you already submitted a request, please try to complete the transfer again in a few minutes.',
+                status: 'error',
+                isClosable: true,
+              })
+              setNeedsNewSignatures(true)
+            }
           } else if (state.chainFrom.id === 'ethereum') {
-            const { transaction } = await state.koinosBridgeContract.functions.complete_transfer({
-              transactionId: result.data.id,
-              token: result.data.koinosToken,
-              recipient: result.data.recipient,
-              value: result.data.amount,
-              expiration: result.data.expiration,
-              signatures: result.data.signatures
-            }, {
-              sendTransaction: false
+            const transaction = await new Promise(async (resolve, reject) => {
+              const timeout = setTimeout(() => {
+                toast({
+                  title: 'Failed to connect with Kondor',
+                  description: 'Please check that you have Kondor installed in this browser and try again.',
+                  status: 'error',
+                  isClosable: true,
+                })
+                reject('kondor did not respond')
+              }, 15000)
+
+              const { transaction } = await state.koinosBridgeContract.functions.complete_transfer({
+                transactionId: result.data.id,
+                token: result.data.koinosToken,
+                recipient: result.data.recipient,
+                value: result.data.amount,
+                expiration: result.data.expiration,
+                signatures: result.data.signatures
+              }, {
+                sendTransaction: false
+              })
+
+              clearTimeout(timeout)
+
+              resolve(transaction)
             })
+
+            console.log('tx', transaction)
 
             const { receipt, transaction: finalTransaction } = await state.koinosProvider.sendTransaction(transaction!)
 
@@ -158,7 +188,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
           })
         }
       } catch (error) {
-        if ((error as AxiosError).response?.data === 'transaction does not exist') {
+        if (error instanceof AxiosError && (error as AxiosError).response?.data === 'transaction does not exist') {
           toast({
             title: 'Failed to retrieve the status of the transaction',
             description: 'Transaction has not yet been processed by the validators, please try again in a few minutes',
@@ -182,12 +212,29 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
 
         if (result.data.status === 'signed') {
           if (state.chainFrom.id === 'koinos') {
-            const { transaction } = await state.koinosBridgeContract.functions.request_new_signatures({
-              transactionId: result.data.id,
-              operationId: result.data.opId
-            }, {
-              sendTransaction: false
+            const transaction = await new Promise(async (resolve, reject) => {
+              const timeout = setTimeout(() => {
+                toast({
+                  title: 'Failed to connect with Kondor',
+                  description: 'Please check that you have Kondor installed in this browser and try again.',
+                  status: 'error',
+                  isClosable: true,
+                })
+                reject('kondor did not respond')
+              }, 15000)
+
+              const { transaction } = await state.koinosBridgeContract.functions.request_new_signatures({
+                transactionId: result.data.id,
+                operationId: result.data.opId
+              }, {
+                sendTransaction: false
+              })
+
+              clearTimeout(timeout)
+
+              resolve(transaction)
             })
+
 
             const { receipt, transaction: finalTransaction } = await state.koinosProvider.sendTransaction(transaction!)
 
@@ -207,7 +254,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
 
             await tx.wait()
             console.log(tx)
-            
+
             toast({
               title: 'Request completed',
               description: 'Your request was successfully sent, you will need to wait for the request to be processed, this takes around 15 blocks.',
@@ -240,10 +287,14 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
     setIsRequestingNewSignatures(false)
   }
 
+  const showTransactionIdChaindMismatchError =
+    (state.transactionId?.startsWith('0x1220') && state.chainFrom.id === 'ethereum')
+    || (!state.transactionId?.startsWith('0x1220') && state.chainFrom.id === 'koinos')
+
   return (
     <Section heading="7. Complete the transfer">
       <Box>
-        <FormControl>
+        <FormControl isInvalid={showTransactionIdChaindMismatchError}>
           <FormLabel htmlFor='transaction-id'>Transaction Id:</FormLabel>
           <Input
             id='transaction-id'
@@ -251,6 +302,10 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
             size="lg"
             onChange={handleTransactionIdChange}
           />
+          {showTransactionIdChaindMismatchError && (
+            <FormErrorMessage>The transaction id does not match the selected chain, please select the correct chain.</FormErrorMessage>
+          )
+          }
         </FormControl>
       </Box>
       {state.transactionId && state.chainFrom.id === 'ethereum' && (
@@ -272,7 +327,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
           <br />
         </>
       )}
-      <Button disabled={isCompletingTransfer} onClick={completeTransfer}>
+      <Button disabled={isCompletingTransfer || !state.transactionId?.length || showTransactionIdChaindMismatchError} onClick={completeTransfer}>
         {isCompletingTransfer ? 'Completing transfer...' : 'Complete transfer'}
       </Button>
     </Section>
