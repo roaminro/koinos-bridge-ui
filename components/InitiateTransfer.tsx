@@ -3,12 +3,13 @@ import { Box, Button, Link, useToast } from '@chakra-ui/react'
 import { useAccount as useEthereumAccount, useContract, useSigner } from 'wagmi'
 import { ethers } from 'ethers'
 
-import { chains, State } from '../pages'
+import { chains, State, TransactionInfo } from '../pages'
 import Section from './Section'
 import { useAccount as useKoinosAccount } from '../context/AccountProvider'
 
 import ethereumBridgeAbi from '../contracts/abi/Ethereum-Bridge.json'
-import { LAST_INIATED_TRANSACTION_ID_KEY } from '../util/constants'
+import { setLastInitiatedTransactionId } from '../util/local_storage'
+import { ExternalLinkIcon } from '@chakra-ui/icons'
 
 interface InitiateTransferProps {
   state: State,
@@ -118,10 +119,20 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
 
           await tx.wait()
           console.log(tx)
-          localStorage.setItem(LAST_INIATED_TRANSACTION_ID_KEY, tx.hash)
+          setLastInitiatedTransactionId(tx.hash)
           setState({
             ...state,
-            transactionId: tx.hash
+            transactionId: tx.hash,
+            transactionsHistory: [
+              {
+                id: tx.hash,
+                chain: 'ethereum',
+                type: 'transfer tokens',
+                date: new Date().toLocaleString(),
+                amount: `${state.amount} ${state.asset.symbol}`
+              },
+              ...state.transactionsHistory
+            ]
           })
           setTransferIsSuccess(true)
         }
@@ -160,10 +171,20 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
         })
 
         const { receipt, transaction: finalTransaction } = await state.koinosProvider.sendTransaction(transaction!)
-        localStorage.setItem(LAST_INIATED_TRANSACTION_ID_KEY, finalTransaction.id!)
+        setLastInitiatedTransactionId(finalTransaction.id!)
         setState({
           ...state,
-          transactionId: finalTransaction.id
+          transactionId: finalTransaction.id,
+          transactionsHistory: [
+            {
+              id: finalTransaction.id!,
+              chain: 'koinos',
+              type: 'transfer tokens',
+              date: new Date().toLocaleString(),
+              amount: `${state.amount} ${state.asset.symbol}`
+            },
+            ...state.transactionsHistory
+          ]
         })
         console.log(receipt)
         await finalTransaction.wait()
@@ -202,6 +223,19 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
         await tx.wait()
         console.log(tx)
         setShowApproveERC20Button(false)
+
+        setState({
+          ...state,
+          transactionsHistory: [
+            {
+              id: tx.hash,
+              chain: 'ethereum',
+              type: 'approve transfer tokens',
+              date: new Date().toLocaleString()
+            },
+            ...state.transactionsHistory
+          ]
+        })
       } catch (error) {
         console.error(error)
         toast({
@@ -236,7 +270,7 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
         <Box>
           Successfully initiated the transfer. It will take at least 15 block confirmations for the validators to process it.
           <Box>
-            <Link href={`https://goerli.etherscan.io/tx/${state.transactionId}`} isExternal>See transaction status on Etherscan</Link>
+            <Link href={`https://goerli.etherscan.io/tx/${state.transactionId}`} isExternal>See transaction status on Etherscan</Link> <ExternalLinkIcon mx='2px' />
           </Box>
         </Box>
       )}
@@ -244,7 +278,7 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
         <Box>
           Successfully initiated the transfer. It will take at least 60 blocks for the validators to process it.
           <Box>
-            <Link href={`https://koinosblocks.com/tx/${state.transactionId}`} isExternal>See transaction status on Koinosblocks</Link>
+            <Link href={`https://koinosblocks.com/tx/${state.transactionId}`} isExternal>See transaction status on Koinosblocks</Link> <ExternalLinkIcon mx='2px' />
           </Box>
         </Box>
       )}

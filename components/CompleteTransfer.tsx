@@ -7,7 +7,8 @@ import { chains, State } from '../pages'
 import Section from './Section'
 
 import ethereumBridgeAbi from '../contracts/abi/Ethereum-Bridge.json'
-import { LAST_INIATED_TRANSACTION_ID_KEY } from '../util/constants'
+import { getLastInitiatedTransactionId } from '../util/local_storage'
+import { ExternalLinkIcon } from '@chakra-ui/icons'
 
 interface CompleteTransferProps {
   state: State,
@@ -52,7 +53,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
 
   useEffect(() => {
     if (!state.transactionId) {
-      const lastInitiatedTxId = localStorage.getItem(LAST_INIATED_TRANSACTION_ID_KEY)
+      const lastInitiatedTxId = getLastInitiatedTransactionId()
       if (lastInitiatedTxId) {
         setState((state) => ({
           ...state,
@@ -114,8 +115,8 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
           if (now >= expiration) {
             const delta = now.getTime() - expiration.getTime()
 
-            if (delta < 3600000) {
-              const approximateRequestTime = Math.floor((3600000 - delta) / 1000 / 60)
+            if (delta < 3700000) {
+              const approximateRequestTime = Math.floor((3700000 - delta) / 1000 / 60)
               toast({
                 title: 'Expired signatures',
                 description: `The validators signatures have expired, please request new ones in approximately ${approximateRequestTime} minutes.`,
@@ -164,6 +165,19 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
             console.log(receipt)
             await finalTransaction.wait()
 
+            setState({
+              ...state,
+              transactionsHistory: [
+                {
+                  id: finalTransaction.id!,
+                  chain: 'koinos',
+                  type: 'complete transfer',
+                  date: new Date().toLocaleString()
+                },
+                ...state.transactionsHistory
+              ]
+            })
+
             toast({
               title: 'Transfer completed',
               description: 'Your transfer was successfully completed!',
@@ -183,6 +197,20 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
 
             await tx.wait()
             console.log(tx)
+
+            setState({
+              ...state,
+              transactionsHistory: [
+                {
+                  id: tx.hash!,
+                  chain: 'ethereum',
+                  type: 'complete transfer',
+                  date: new Date().toLocaleString()
+                },
+                ...state.transactionsHistory
+              ]
+            })
+
             toast({
               title: 'Transfer completed',
               description: 'Your transfer was successfully completed!',
@@ -249,6 +277,19 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
             console.log(receipt)
             await finalTransaction.wait()
 
+            setState({
+              ...state,
+              transactionsHistory: [
+                {
+                  id: finalTransaction.id!,
+                  chain: 'koinos',
+                  type: 'request new signatures',
+                  date: new Date().toLocaleString()
+                },
+                ...state.transactionsHistory
+              ]
+            })
+
             toast({
               title: 'Request completed',
               description: 'Your request was successfully sent, you will need to wait for the request to be processed, this takes around 60 blocks.',
@@ -262,6 +303,19 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
 
             await tx.wait()
             console.log(tx)
+
+            setState({
+              ...state,
+              transactionsHistory: [
+                {
+                  id: tx.hash!,
+                  chain: 'ethereum',
+                  type: 'request new signatures',
+                  date: new Date().toLocaleString()
+                },
+                ...state.transactionsHistory
+              ]
+            })
 
             toast({
               title: 'Request completed',
@@ -325,12 +379,12 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
       </Box>
       {state.transactionId && state.chainFrom.id === 'ethereum' && (
         <Box>
-          <Link href={`https://goerli.etherscan.io/tx/${state.transactionId}`} isExternal>See transaction status on Etherscan</Link>
+          <Link href={`https://goerli.etherscan.io/tx/${state.transactionId}`} isExternal>See transaction status on Etherscan</Link> <ExternalLinkIcon mx='2px' />
         </Box>
       )}
       {state.transactionId && state.chainFrom.id === 'koinos' && (
         <Box>
-          <Link href={`https://koinosblocks.com/tx/${state.transactionId}`} isExternal>See transaction status on Koinosblocks</Link>
+          <Link href={`https://koinosblocks.com/tx/${state.transactionId}`} isExternal>See transaction status on Koinosblocks</Link> <ExternalLinkIcon mx='2px' />
         </Box>
       )}
       <br />

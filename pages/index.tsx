@@ -12,6 +12,7 @@ import Recipient from '../components/Recipient'
 import InitiateTransfer from '../components/InitiateTransfer'
 import CompleteTransfer from '../components/CompleteTransfer'
 import koinosBridgeAbiJson from '../contracts/abi/Koinos-Bridge.json'
+import TransactionsHistory from '../components/TransactionsHistory'
 
 const koinosBridgeAbi: Abi = {
   koilib_types: koinosBridgeAbiJson.types,
@@ -67,6 +68,14 @@ export const assets: Record<string, Asset> = {
   }
 }
 
+export interface TransactionInfo {
+  id: string
+  chain: string
+  type: string
+  date: string
+  amount?: string
+}
+
 export interface State {
   chainFrom: Chain
   chainTo: Chain
@@ -80,6 +89,7 @@ export interface State {
   koinosBridgeContract: Contract
   transactionId: string | undefined
   koinosProvider: Provider
+  transactionsHistory: TransactionInfo[]
 }
 
 const initialState: State = {
@@ -102,7 +112,8 @@ const initialState: State = {
     provider: koinosProvider,
   }),
   transactionId: '',
-  koinosProvider: koinosProvider
+  koinosProvider: koinosProvider,
+  transactionsHistory: []
 }
 
 export default function Home() {
@@ -125,6 +136,8 @@ export default function Home() {
         <InitiateTransfer state={state} setState={setState} />
         <br />
         <CompleteTransfer state={state} setState={setState} />
+        <br />
+        <TransactionsHistory state={state} setState={setState} />
       </Flex>
     </Box>
   )
