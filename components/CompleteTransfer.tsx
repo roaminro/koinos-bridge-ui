@@ -121,13 +121,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
           } else if (state.chainFrom.id === 'ethereum') {
             const transaction = await new Promise(async (resolve, reject) => {
               const timeout = setTimeout(() => {
-                toast({
-                  title: 'Failed to connect with Kondor',
-                  description: 'Please check that you have Kondor installed in this browser and try again.',
-                  status: 'error',
-                  isClosable: true,
-                })
-                reject('kondor did not respond')
+                reject(new Error('Please check that you have Kondor installed in this browser and try again.'))
               }, 15000)
 
               try {
@@ -218,13 +212,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
           if (state.chainFrom.id === 'koinos') {
             const transaction = await new Promise(async (resolve, reject) => {
               const timeout = setTimeout(() => {
-                toast({
-                  title: 'Failed to connect with Kondor',
-                  description: 'Please check that you have Kondor installed in this browser and try again.',
-                  status: 'error',
-                  isClosable: true,
-                })
-                reject('kondor did not respond')
+                reject(new Error('Please check that you have Kondor installed in this browser and try again.'))
               }, 15000)
 
               try {
