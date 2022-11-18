@@ -15,20 +15,22 @@ interface CompleteTransferProps {
 
 interface GetBlocksById {
   block_items: [{
-      receipt: {
-        transaction_receipts: [{
-            id: string,
-            events: [{
-              sequence: number,
-              name: string
-            }]
-          }]
-      }
-    }]
+    receipt: {
+      transaction_receipts: [{
+        id: string,
+        events: [{
+          sequence: number,
+          name: string
+        }]
+      }]
+    }
+  }]
 }
 
 export default function CompleteTransfer({ state, setState }: CompleteTransferProps) {
-  const [koinosIsCompletingTransfer, setKoinosIsCompletingTransfer] = useState(false)
+  const [isCompletingTransfer, setIsCompletingTransfer] = useState(false)
+  const [needsNewSignatures, setNeedsNewSignatures] = useState(false)
+  const [isRequestingNewSignatures, setIsRequestingNewSignatures] = useState(false)
 
   const toast = useToast()
 
@@ -85,7 +87,8 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
   }
 
   const completeTransfer = async () => {
-    setKoinosIsCompletingTransfer(true)
+    setNeedsNewSignatures(false)
+    setIsCompletingTransfer(true)
     if (state.transactionId) {
 
       try {
@@ -93,7 +96,17 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
         console.log(result.data)
 
         if (result.data.status === 'signed') {
-          if (state.chainFrom.id === 'ethereum') {
+          const expiration = new Date(parseInt(result.data.expiration))
+
+          if (new Date() >= expiration) {
+            toast({
+              title: 'Expired signatures',
+              description: 'The validators signatures have expired, please request new ones. If you already submitted a request, please try to complete the transfer again in a few minutes.',
+              status: 'error',
+              isClosable: true,
+            })
+            setNeedsNewSignatures(true)
+          } else if (state.chainFrom.id === 'ethereum') {
             const { transaction } = await state.koinosBridgeContract.functions.complete_transfer({
               transactionId: result.data.id,
               token: result.data.koinosToken,
@@ -157,11 +170,78 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
         }
       }
     }
-    setKoinosIsCompletingTransfer(false)
+    setIsCompletingTransfer(false)
+  }
+
+  const requestNewSignatures = async () => {
+    setIsRequestingNewSignatures(true)
+    if (state.transactionId) {
+      try {
+        const result = await checkApi()
+        console.log(result.data)
+
+        if (result.data.status === 'signed') {
+          if (state.chainFrom.id === 'koinos') {
+            const { transaction } = await state.koinosBridgeContract.functions.request_new_signatures({
+              transactionId: result.data.id,
+              operationId: result.data.opId
+            }, {
+              sendTransaction: false
+            })
+
+            const { receipt, transaction: finalTransaction } = await state.koinosProvider.sendTransaction(transaction!)
+
+            console.log(receipt)
+            await finalTransaction.wait()
+
+            toast({
+              title: 'Request completed',
+              description: 'Your request was successfully sent, you will need to wait for the request to be processed, this takes around 60 blocks.',
+              status: 'success',
+              isClosable: true,
+            })
+          } else if (state.chainFrom.id === 'ethereum') {
+            const tx = await ethBridgeContract!.RequestNewSignatures(
+              result.data.id
+            )
+
+            await tx.wait()
+            console.log(tx)
+            
+            toast({
+              title: 'Request completed',
+              description: 'Your request was successfully sent, you will need to wait for the request to be processed, this takes around 15 blocks.',
+              status: 'success',
+              isClosable: true,
+            })
+          }
+        } else if (result.data.status === 'completed') {
+          toast({
+            title: 'Transfer completed',
+            description: 'Your transfer has already been successfully completed!',
+            status: 'success',
+            isClosable: true,
+          })
+        }
+        setNeedsNewSignatures(false)
+      } catch (error) {
+        if ((error as AxiosError).response?.data === 'transaction does not exist') {
+          toast({
+            title: 'Failed to retrieve the status of the transaction',
+            description: 'Transaction has not yet been processed by the validators, please try again in a few minutes',
+            status: 'warning',
+            isClosable: true,
+          })
+        } else {
+          console.error(error)
+        }
+      }
+    }
+    setIsRequestingNewSignatures(false)
   }
 
   return (
-    <Section heading="7. Complete transfer">
+    <Section heading="7. Complete the transfer">
       <Box>
         <FormControl>
           <FormLabel htmlFor='transaction-id'>Transaction Id:</FormLabel>
@@ -184,8 +264,16 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
         </Box>
       )}
       <br />
-      <Button disabled={koinosIsCompletingTransfer} onClick={completeTransfer}>
-        {koinosIsCompletingTransfer ? 'Completing transfer...' : 'Complete transfer'}
+      {needsNewSignatures && (
+        <>
+          <Button disabled={isRequestingNewSignatures} onClick={requestNewSignatures}>
+            {isRequestingNewSignatures ? 'Requesting new signatures...' : 'Request new signatures'}
+          </Button>
+          <br />
+        </>
+      )}
+      <Button disabled={isCompletingTransfer} onClick={completeTransfer}>
+        {isCompletingTransfer ? 'Completing transfer...' : 'Complete transfer'}
       </Button>
     </Section>
   )

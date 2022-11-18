@@ -188,7 +188,7 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
   }
 
   return (
-    <Section heading="6. Initiate transfer">
+    <Section heading="6. Initiate the transfer">
       {showApproveERC20Button && (
         <Button disabled={approveEthTransferIsLoading} onClick={approveTokenTransfer}>
           {approveEthTransferIsLoading ? 'Approving token transfer...' : 'Approve token transfer'}

@@ -42,7 +42,7 @@ export default function Chains({ state, setState }: ChainsProps) {
   }
 
   return (
-    <Section heading="2. Transfer from">
+    <Section heading="2. Choose the chain to transfer from">
       <FormControl>
         <FormLabel>Chain:</FormLabel>
         <Select
