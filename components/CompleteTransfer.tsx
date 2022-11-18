@@ -130,20 +130,24 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
                 reject('kondor did not respond')
               }, 15000)
 
-              const { transaction } = await state.koinosBridgeContract.functions.complete_transfer({
-                transactionId: result.data.id,
-                token: result.data.koinosToken,
-                recipient: result.data.recipient,
-                value: result.data.amount,
-                expiration: result.data.expiration,
-                signatures: result.data.signatures
-              }, {
-                sendTransaction: false
-              })
+              try {
+                const { transaction } = await state.koinosBridgeContract.functions.complete_transfer({
+                  transactionId: result.data.id,
+                  token: result.data.koinosToken,
+                  recipient: result.data.recipient,
+                  value: result.data.amount,
+                  expiration: result.data.expiration,
+                  signatures: result.data.signatures
+                }, {
+                  sendTransaction: false
+                })
 
-              clearTimeout(timeout)
-
-              resolve(transaction)
+                clearTimeout(timeout)
+                resolve(transaction)
+              } catch (error) {
+                clearTimeout(timeout)
+                reject(error)
+              }
             })
 
             console.log('tx', transaction)
@@ -223,18 +227,21 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
                 reject('kondor did not respond')
               }, 15000)
 
-              const { transaction } = await state.koinosBridgeContract.functions.request_new_signatures({
-                transactionId: result.data.id,
-                operationId: result.data.opId
-              }, {
-                sendTransaction: false
-              })
+              try {
+                const { transaction } = await state.koinosBridgeContract.functions.request_new_signatures({
+                  transactionId: result.data.id,
+                  operationId: result.data.opId
+                }, {
+                  sendTransaction: false
+                })
 
-              clearTimeout(timeout)
-
-              resolve(transaction)
+                clearTimeout(timeout)
+                resolve(transaction)
+              } catch (error) {
+                clearTimeout(timeout)
+                reject(error)
+              }
             })
-
 
             const { receipt, transaction: finalTransaction } = await state.koinosProvider.sendTransaction(transaction!)
 
@@ -281,6 +288,12 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
           })
         } else {
           console.error(error)
+          toast({
+            title: 'An error occured',
+            description: (error as Error).message,
+            status: 'error',
+            isClosable: true,
+          })
         }
       }
     }
@@ -288,8 +301,9 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
   }
 
   const showTransactionIdChaindMismatchError =
-    (state.transactionId?.startsWith('0x1220') && state.chainFrom.id === 'ethereum')
-    || (!state.transactionId?.startsWith('0x1220') && state.chainFrom.id === 'koinos')
+    (state.transactionId?.length && state.transactionId?.startsWith('0x1220') && state.chainFrom.id === 'ethereum')
+    || (state.transactionId?.length && !state.transactionId?.startsWith('0x1220') && state.chainFrom.id === 'koinos')
+    || false
 
   return (
     <Section heading="7. Complete the transfer">

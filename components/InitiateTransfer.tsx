@@ -125,16 +125,42 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
         }
       } catch (error) {
         console.error(error)
+        toast({
+          title: 'An error occured',
+          description: (error as Error).message,
+          status: 'error',
+          isClosable: true,
+        })
       }
     } else if (state.chainFrom.id === 'koinos') {
       try {
-        const { transaction } = await state.koinosBridgeContract.functions.transfer_tokens({
-          from: koinosAddress,
-          token: state.asset.koinosAddress,
-          amount: state.formattedAmount,
-          recipient: state.recipient
-        }, {
-          sendTransaction: false
+        const transaction = await new Promise(async (resolve, reject) => {
+          const timeout = setTimeout(() => {
+            toast({
+              title: 'Failed to connect with Kondor',
+              description: 'Please check that you have Kondor installed in this browser and try again.',
+              status: 'error',
+              isClosable: true,
+            })
+            reject('kondor did not respond')
+          }, 15000)
+
+          try {
+            const { transaction } = await state.koinosBridgeContract.functions.transfer_tokens({
+              from: koinosAddress,
+              token: state.asset.koinosAddress,
+              amount: state.formattedAmount,
+              recipient: state.recipient
+            }, {
+              sendTransaction: false
+            })
+
+            clearTimeout(timeout)
+            resolve(transaction)
+          } catch (error) {
+            clearTimeout(timeout)
+            reject(error)
+          }
         })
 
         const { receipt, transaction: finalTransaction } = await state.koinosProvider.sendTransaction(transaction!)
@@ -155,6 +181,12 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
         })
       } catch (error) {
         console.error(error)
+        toast({
+          title: 'An error occured',
+          description: (error as Error).message,
+          status: 'error',
+          isClosable: true,
+        })
       }
     }
     setTransferIsLoading(false)
@@ -175,6 +207,12 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
         setShowApproveERC20Button(false)
       } catch (error) {
         console.error(error)
+        toast({
+          title: 'An error occured',
+          description: (error as Error).message,
+          status: 'error',
+          isClosable: true,
+        })
       }
       setApproveEthTransferIsLoading(false)
     }
