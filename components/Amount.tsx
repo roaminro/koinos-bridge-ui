@@ -70,7 +70,6 @@ export default function Amount({ state, setState }: AmountProps) {
       } else if (state.chainFrom.id === 'ethereum') {
         formattedAmount = utils.parseUnits(state.amount, state.asset.ethDecimals)
       }
-      console.log('formattedAmount', formattedAmount)
 
       return {
         ...state,

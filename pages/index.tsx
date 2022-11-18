@@ -108,8 +108,6 @@ const initialState: State = {
 export default function Home() {
   const [state, setState] = useState(initialState)
 
-  console.log('test')
-
   return (
     <Box minHeight="100vh">
       <Nav />
