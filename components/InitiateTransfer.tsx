@@ -8,6 +8,7 @@ import Section from './Section'
 import { useAccount as useKoinosAccount } from '../context/AccountProvider'
 
 import ethereumBridgeAbi from '../contracts/abi/Ethereum-Bridge.json'
+import { LAST_INIATED_TRANSACTION_ID_KEY } from '../util/constants'
 
 interface InitiateTransferProps {
   state: State,
@@ -117,6 +118,7 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
 
           await tx.wait()
           console.log(tx)
+          localStorage.setItem(LAST_INIATED_TRANSACTION_ID_KEY, tx.hash)
           setState({
             ...state,
             transactionId: tx.hash
@@ -158,6 +160,7 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
         })
 
         const { receipt, transaction: finalTransaction } = await state.koinosProvider.sendTransaction(transaction!)
+        localStorage.setItem(LAST_INIATED_TRANSACTION_ID_KEY, finalTransaction.id!)
         setState({
           ...state,
           transactionId: finalTransaction.id

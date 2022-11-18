@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from 'react'
+import { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { Box, Button, FormControl, FormErrorMessage, FormLabel, Input, Link, useToast } from '@chakra-ui/react'
 import axios, { AxiosError, AxiosResponse } from 'axios'
 import { useContract, useSigner } from 'wagmi'
@@ -7,6 +7,7 @@ import { chains, State } from '../pages'
 import Section from './Section'
 
 import ethereumBridgeAbi from '../contracts/abi/Ethereum-Bridge.json'
+import { LAST_INIATED_TRANSACTION_ID_KEY } from '../util/constants'
 
 interface CompleteTransferProps {
   state: State,
@@ -48,6 +49,18 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
       transactionId: event.target.value
     })
   }
+
+  useEffect(() => {
+    if (!state.transactionId) {
+      const lastInitiatedTxId = localStorage.getItem(LAST_INIATED_TRANSACTION_ID_KEY)
+      if (lastInitiatedTxId) {
+        setState((state) => ({
+          ...state,
+          transactionId: lastInitiatedTxId
+        }))
+      }
+    }
+  }, [setState, state.transactionId])
 
   const getKoinosOpId = async () => {
     const { transactions: [transaction] } = await state.koinosProvider.getTransactionsById([state.transactionId!])
