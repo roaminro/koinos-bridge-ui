@@ -236,6 +236,12 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
           })
         } else {
           console.error(error)
+          toast({
+            title: 'An error occured',
+            description: (error as Error).message,
+            status: 'error',
+            isClosable: true,
+          })
         }
       }
     }
