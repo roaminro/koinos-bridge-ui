@@ -150,7 +150,7 @@ export default function InitiateTransfer({ state, setState }: InitiateTransferPr
         const transaction = await new Promise(async (resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Please check that you have Kondor installed in this browser and try again.'))
-          }, 15000)
+          }, 60000)
 
           try {
             const { transaction } = await state.koinosBridgeContract.functions.transfer_tokens({
