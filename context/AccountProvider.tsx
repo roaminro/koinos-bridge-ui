@@ -48,8 +48,7 @@ export const AccountProvider = ({
   }, [])
 
   useEffect(() => {
-    // const kw = new KoinosWallet('https://koinos-wallet.vercel.app/embed/wallet-connector')
-    const kw = new KoinosWallet('http://localhost:3000/embed/wallet-connector')
+    const kw = new KoinosWallet('https://koinos-wallet.vercel.app/embed/wallet-connector')
     koinosWallet.current = kw
 
     const setup = async () => {
