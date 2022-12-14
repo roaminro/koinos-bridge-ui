@@ -2,12 +2,12 @@ import type { AppProps } from 'next/app'
 import { ChakraProvider } from '@chakra-ui/react'
 import '@rainbow-me/rainbowkit/styles.css'
 import { getDefaultWallets, RainbowKitProvider } from '@rainbow-me/rainbowkit'
-import { chain, configureChains, createClient, WagmiConfig } from 'wagmi'
+import { goerli, configureChains, createClient, WagmiConfig } from 'wagmi'
 import { publicProvider } from 'wagmi/providers/public'
 import { AccountProvider } from '../context/AccountProvider'
 
 const { chains, provider } = configureChains(
-  [chain.goerli],
+  [goerli],
   [publicProvider()]
 )
 

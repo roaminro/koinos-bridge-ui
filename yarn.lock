@@ -870,10 +870,10 @@
   resolved "https://registry.yarnpkg.com/@chakra-ui/visually-hidden/-/visually-hidden-2.0.13.tgz#6553467d93f206d17716bcbe6e895a84eef87472"
   integrity sha512-sDEeeEjLfID333EC46NdCbhK2HyMXlpl5HzcJjuwWIpyVz4E1gKQ9hlwpq6grijvmzeSywQ5D3tTwUrvZck4KQ==
 
-"@coinbase/wallet-sdk@^3.5.3":
-  version "3.5.4"
-  resolved "https://registry.yarnpkg.com/@coinbase/wallet-sdk/-/wallet-sdk-3.5.4.tgz#957aa74521a4afa61ae99e1e2b948a6e017fcc87"
-  integrity sha512-+5s05dmB6YUPUnV5vThP96GVG1O4GgS3qYvjYJhe56ds8YFz+keU3/docFBLf8FQOCIO5j7IZtZmVGvz7G+kRw==
+"@coinbase/wallet-sdk@^3.6.0":
+  version "3.6.2"
+  resolved "https://registry.yarnpkg.com/@coinbase/wallet-sdk/-/wallet-sdk-3.6.2.tgz#e8633001136e0236a746f6462c0dff2f881db343"
+  integrity sha512-HzxajB+qS+G9//c+th5uJ8KSt+jQ6/U+cgL9Sv89Wx6Mif+Lg5HxGtc6JQcIdHuYk9AFX+nXNSXtTGRdpHkdDg==
   dependencies:
     "@metamask/safe-event-emitter" "2.0.0"
     "@solana/web3.js" "1.52.0"
@@ -1672,10 +1672,10 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
 
-"@rainbow-me/rainbowkit@^0.8.0":
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/@rainbow-me/rainbowkit/-/rainbowkit-0.8.0.tgz#e5f5a44431f32e5884c5d7eb5f5e253e81af4887"
-  integrity sha512-4nqH5OGcNzYMe/fYSBU7qM8H102UzZ6PwURMA5z6puDct0BGpeBk0dofqaGATSDam+4RdEmKaqOz5r/1Lc3/0g==
+"@rainbow-me/rainbowkit@^0.8.1":
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/@rainbow-me/rainbowkit/-/rainbowkit-0.8.1.tgz#de93b55a4629cdd33a9acf6a8699a7cd70b29ccd"
+  integrity sha512-A8BjihvgCY/xjQWOpqgOce+uO4mmIV4Qlo3XMF87kk5WNmyLLaPx2oYTJQz1uOinWE77h4G0HozJr5wnrermgw==
   dependencies:
     "@vanilla-extract/css" "1.9.1"
     "@vanilla-extract/dynamic" "2.0.2"
@@ -1683,6 +1683,10 @@
     clsx "1.1.1"
     qrcode "1.5.0"
     react-remove-scroll "2.5.4"
+
+"@roamin/koinos-wallet-sdk@https://github.com/roaminro/koinos-wallet-sdk#c98e4933b3c05af8ece7c46f0e1f5c2aaede5d55":
+  version "0.0.1"
+  resolved "https://github.com/roaminro/koinos-wallet-sdk#c98e4933b3c05af8ece7c46f0e1f5c2aaede5d55"
 
 "@rushstack/eslint-patch@^1.1.3":
   version "1.2.0"
@@ -1934,12 +1938,18 @@
   resolved "https://registry.yarnpkg.com/@vanilla-extract/sprinkles/-/sprinkles-1.5.0.tgz#c921183ae518bb484299c2dc81f2acefd91c3dbe"
   integrity sha512-W58f2Rzz5lLmk0jbhgStVlZl5wEiPB1Ur3fRvUaBM+MrifZ3qskmFq/CiH//fEYeG5Dh9vF1qRviMMH46cX9Nw==
 
-"@wagmi/core@0.7.3":
-  version "0.7.3"
-  resolved "https://registry.yarnpkg.com/@wagmi/core/-/core-0.7.3.tgz#e61d582d5968d0b2ec97c8727903b3cb7d5fe847"
-  integrity sha512-gXbIsDR+FfrjBckhu0j9FoJhP5faXqiUpsKP22M9cbN4g1ZDdXsOUCkaWJbcoGicIxTd0oMcsxCyqC4c3ue2AA==
+"@wagmi/chains@^0.1.0":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@wagmi/chains/-/chains-0.1.1.tgz#108441cdbc461d0ff1024738db038ce8fb1c3e58"
+  integrity sha512-isHtXKy6acossn6NQsBzgY25CH+m+v/eAjCUv8HAmAAYHxhvo59fWGneiSRK2pCPdjN3VIG5ZcMG4cAaO7qqjQ==
+
+"@wagmi/core@0.8.2":
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/@wagmi/core/-/core-0.8.2.tgz#cef4ae8db6b44868a891ab9d83df2efe87b9749a"
+  integrity sha512-AQzHbGWfYcFb9VPnKH/61MXNjBHJX1o7M7enK5d4qefqbBkhxBiHBjQH+D1YfA4w0dJgriRZo9FsHJj8X2jjDA==
   dependencies:
-    abitype "^0.1.8"
+    "@wagmi/chains" "^0.1.0"
+    abitype "^0.2.5"
     eventemitter3 "^4.0.7"
     zustand "^4.1.4"
 
@@ -2152,10 +2162,10 @@ JSONStream@^1.3.5:
     jsonparse "^1.2.0"
     through ">=2.2.7 <3"
 
-abitype@^0.1.7, abitype@^0.1.8:
-  version "0.1.8"
-  resolved "https://registry.yarnpkg.com/abitype/-/abitype-0.1.8.tgz#f47d397b95d81a445a0d0ef2fdd7827131b3fd74"
-  integrity sha512-2pde0KepTzdfu19ZrzYTYVIWo69+6UbBCY4B1RDiwWgo2XZtFSJhF6C+XThuRXbbZ823J0Rw1Y5cP0NXYVcCdQ==
+abitype@^0.2.5:
+  version "0.2.5"
+  resolved "https://registry.yarnpkg.com/abitype/-/abitype-0.2.5.tgz#e571ef2ed99db1cae551fffde5bcbcee4e446177"
+  integrity sha512-t1iiokWYpkrziu4WL2Gb6YdGvaP9ZKs7WnA39TI8TsW2E99GVRgDPW/xOKhzoCdyxOYt550CNYEFluCwGaFHaA==
 
 acorn-jsx@^5.3.2:
   version "5.3.2"
@@ -5448,18 +5458,18 @@ uuid@^8.3.2:
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.3.2.tgz#80d5b5ced271bb9af6c445f21a1a04c606cefbe2"
   integrity sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==
 
-wagmi@^0.8.3:
-  version "0.8.3"
-  resolved "https://registry.yarnpkg.com/wagmi/-/wagmi-0.8.3.tgz#01184de1e3dfb3d6ae674060e370425d28c03105"
-  integrity sha512-9LVc+Wn6cV7wdGJtzf0SBXjSnpOZsXAlKMGqzYY9Xbus3z+sTsCRkWONK4hW+DZyf4M6wIU8jIyrK9AgcWunjA==
+wagmi@^0.9.2:
+  version "0.9.2"
+  resolved "https://registry.yarnpkg.com/wagmi/-/wagmi-0.9.2.tgz#97f8a93daa7c5dfdc492a4100cccde1465433ee6"
+  integrity sha512-ZHmVXQ0U2650pBf0k168CZJ5pAotqefy5d5P9HpoW4oMaHoQ9+BvUjLcA0L2SEeUUY6L3MYRrOmoHHrcyTsToQ==
   dependencies:
-    "@coinbase/wallet-sdk" "^3.5.3"
+    "@coinbase/wallet-sdk" "^3.6.0"
     "@tanstack/query-sync-storage-persister" "^4.14.5"
     "@tanstack/react-query" "^4.14.5"
     "@tanstack/react-query-persist-client" "^4.14.5"
-    "@wagmi/core" "0.7.3"
+    "@wagmi/core" "0.8.2"
     "@walletconnect/ethereum-provider" "^1.8.0"
-    abitype "^0.1.7"
+    abitype "^0.2.5"
     use-sync-external-store "^1.2.0"
 
 webidl-conversions@^3.0.0:

@@ -30,7 +30,7 @@ export default function Recipient({ state, setState }: RecipientProps) {
           <FormLabel htmlFor='recipient'>Recipient:</FormLabel>
           <Input
             id='recipient'
-            value={state.recipient}
+            value={state.recipient || ''}
             size="lg"
             disabled={!overrideRecipient}
             onChange={handleRecipientChange}

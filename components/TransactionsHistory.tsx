@@ -29,8 +29,6 @@ export default function TransactionsHistory({ state, setState }: TransactionsHis
     }
   }, [setState, state.transactionsHistory])
 
-  console.log('test', state.transactionsHistory)
-
   return (
     <Section heading="Transactions History">
       <Box>

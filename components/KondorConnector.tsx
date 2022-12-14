@@ -14,16 +14,34 @@ export default function KondorConnector({
   size = 'md',
   connectedVariant,
 }: ConnectorProps) {
-  const { account, isConnecting, connect } = useAccount()
+  const { account, isConnecting, connectedWithKondor, connectWithKondor, connectWithKoinosWallet } = useAccount()
   const toast = useToast()
 
-  const connectCallback = async () => {
-    const connected = await connect()
+  const connectWithKondorClick = async () => {
+    const connected = await connectWithKondor()
 
     if (!connected) {
       toast({
         title: 'Failed to connect with Kondor',
         description: 'Please check that you have Kondor installed in this browser and try again.',
+        status: 'error',
+        isClosable: true,
+      })
+      return
+    }
+
+    if (onConnect) {
+      onConnect()
+    }
+  }
+
+  const connectWithKoinosWalletClick = async () => {
+    const connected = await connectWithKoinosWallet()
+
+    if (!connected) {
+      toast({
+        title: 'Failed to connect with Koinos Wallet',
+        description: 'Connection to Koinos Wallet canceled.',
         status: 'error',
         isClosable: true,
       })
@@ -54,7 +72,7 @@ export default function KondorConnector({
         hasArrow
       >
         <Button
-          onClick={connectCallback}
+          onClick={connectedWithKondor ? connectWithKondorClick : connectWithKoinosWalletClick}
           variant="outline"
           isLoading={isConnecting}
           minWidth="unset"
@@ -75,16 +93,30 @@ export default function KondorConnector({
       </Tooltip>
     )
   ) : (
-    <Button
-      onClick={connectCallback}
-      variant="solid"
-      isLoading={isConnecting}
-      minWidth="unset"
-      fontWeight="bold"
-      colorScheme="blue"
-      size={size}
-    >
-      Connect with Kondor
-    </Button>
+    <>
+      <Button
+        onClick={connectWithKondorClick}
+        variant="solid"
+        isLoading={isConnecting}
+        minWidth="unset"
+        fontWeight="bold"
+        colorScheme="blue"
+        size={size}
+      >
+        Connect with Kondor
+      </Button>
+      { ' ' }
+      <Button
+        onClick={connectWithKoinosWalletClick}
+        variant="solid"
+        isLoading={isConnecting}
+        minWidth="unset"
+        fontWeight="bold"
+        colorScheme="blue"
+        size={size}
+      >
+        Connect with Koinos Wallet
+      </Button>
+    </>
   )
 }

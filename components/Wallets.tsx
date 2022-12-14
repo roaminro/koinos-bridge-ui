@@ -24,36 +24,38 @@ interface WalletsProps {
 export default function Wallets({ state, setState }: WalletsProps) {
 
   const { address: ethereumAddress } = useEthereumAccount()
-  const { account: koinosAddress } = useKoinosAccount()
+  const { account: koinosAddress, getSigner, isLoading } = useKoinosAccount()
 
   useEffect(() => {
-    setState((state) => {
-      const koinosSigner = koinosAddress ? kondor.getSigner(koinosAddress) as Signer : undefined
+    if (!isLoading) {
+      setState((state) => {
+        const koinosSigner = koinosAddress ? getSigner(koinosAddress) : undefined
 
-      const koinosBridgeContract = new Contract({
-        id: chains['koinos'].bridgeAddress,
-        abi: koinosBridgeAbi,
-        provider: state.koinosProvider,
-        signer: koinosSigner,
+        const koinosBridgeContract = new Contract({
+          id: chains['koinos'].bridgeAddress,
+          abi: koinosBridgeAbi,
+          provider: state.koinosProvider,
+          signer: koinosSigner,
+        })
+
+        if (state.chainFrom.id === 'koinos') {
+          return {
+            ...state,
+            recipient: ethereumAddress,
+            koinosBridgeContract
+          }
+        } else if (state.chainFrom.id === 'ethereum') {
+          return {
+            ...state,
+            recipient: koinosAddress,
+            koinosBridgeContract
+          }
+        }
+
+        return state
       })
-
-      if (state.chainFrom.id === 'koinos') {
-        return {
-          ...state,
-          recipient: ethereumAddress,
-          koinosBridgeContract
-        }
-      } else if (state.chainFrom.id === 'ethereum') {
-        return {
-          ...state,
-          recipient: koinosAddress,
-          koinosBridgeContract
-        }
-      }
-
-      return state
-    })
-  }, [ethereumAddress, koinosAddress, setState])
+    }
+  }, [ethereumAddress, getSigner, koinosAddress, setState, isLoading])
 
   return (
     <Section heading="1. Connect your wallets">

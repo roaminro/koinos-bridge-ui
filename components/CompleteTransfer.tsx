@@ -238,7 +238,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
           console.error(error)
           toast({
             title: 'An error occured',
-            description: (error as Error).message,
+            description: (error as Error).message ? (error as Error).message : error as string,
             status: 'error',
             isClosable: true,
           })
@@ -351,7 +351,7 @@ export default function CompleteTransfer({ state, setState }: CompleteTransferPr
           console.error(error)
           toast({
             title: 'An error occured',
-            description: (error as Error).message,
+            description: (error as Error).message ? (error as Error).message : error as string,
             status: 'error',
             isClosable: true,
           })
