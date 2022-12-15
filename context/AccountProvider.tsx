@@ -1,6 +1,6 @@
 import React, { useContext, useState, createContext, useEffect, useRef } from 'react'
 import * as kondor from 'kondor-js'
-import KoinosWallet from '@roamin/koinos-wallet-sdk'
+import MyKoinosWallet from '@roamin/my-koinos-wallet-sdk'
 import { Signer } from 'koilib'
 
 const LOCAL_STORAGE_KEY = 'ACCOUNT'
@@ -11,7 +11,7 @@ type AccountContextType = {
   isConnecting: boolean;
   connectedWithKondor: boolean;
   connectWithKondor: () => Promise<boolean>;
-  connectWithKoinosWallet: () => Promise<boolean>;
+  connectWithMyKoinosWallet: () => Promise<boolean>;
   getSigner: (signerAddress: string) => Signer | undefined
 };
 
@@ -20,7 +20,7 @@ export const AccountContext = createContext<AccountContextType>({
   isLoading: true,
   connectedWithKondor: false,
   connectWithKondor: async () => false,
-  connectWithKoinosWallet: async () => false,
+  connectWithMyKoinosWallet: async () => false,
   getSigner: () => undefined,
 })
 
@@ -36,7 +36,7 @@ export const AccountProvider = ({
   const [connectedWithKondor, setConnectedWithKondor] = useState(false)
 
   const [account, setAccount] = useState<string | undefined>(undefined)
-  const koinosWallet = useRef<KoinosWallet>()
+  const koinosWallet = useRef<MyKoinosWallet>()
 
   useEffect(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY)
@@ -48,7 +48,7 @@ export const AccountProvider = ({
   }, [])
 
   useEffect(() => {
-    const kw = new KoinosWallet('https://koinos-wallet.vercel.app/embed/wallet-connector')
+    const kw = new MyKoinosWallet('https://my-koinos-wallet.vercel.app/embed/wallet-connector')
     koinosWallet.current = kw
 
     const setup = async () => {
@@ -87,7 +87,7 @@ export const AccountProvider = ({
     return !!address
   }
 
-  const connectWithKoinosWallet = async () => {
+  const connectWithMyKoinosWallet = async () => {
     setIsConnecting(true)
 
     let result = false
@@ -121,7 +121,7 @@ export const AccountProvider = ({
       isLoading,
       connectedWithKondor,
       connectWithKondor,
-      connectWithKoinosWallet,
+      connectWithMyKoinosWallet,
       getSigner
     }}>
       {children}

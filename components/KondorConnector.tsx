@@ -14,7 +14,7 @@ export default function KondorConnector({
   size = 'md',
   connectedVariant,
 }: ConnectorProps) {
-  const { account, isConnecting, connectedWithKondor, connectWithKondor, connectWithKoinosWallet } = useAccount()
+  const { account, isConnecting, connectedWithKondor, connectWithKondor, connectWithMyKoinosWallet } = useAccount()
   const toast = useToast()
 
   const connectWithKondorClick = async () => {
@@ -35,8 +35,8 @@ export default function KondorConnector({
     }
   }
 
-  const connectWithKoinosWalletClick = async () => {
-    const connected = await connectWithKoinosWallet()
+  const connectWithMyKoinosWalletClick = async () => {
+    const connected = await connectWithMyKoinosWallet()
 
     if (!connected) {
       toast({
@@ -72,7 +72,7 @@ export default function KondorConnector({
         hasArrow
       >
         <Button
-          onClick={connectedWithKondor ? connectWithKondorClick : connectWithKoinosWalletClick}
+          onClick={connectedWithKondor ? connectWithKondorClick : connectWithMyKoinosWalletClick}
           variant="outline"
           isLoading={isConnecting}
           minWidth="unset"
@@ -107,7 +107,7 @@ export default function KondorConnector({
       </Button>
       { ' ' }
       <Button
-        onClick={connectWithKoinosWalletClick}
+        onClick={connectWithMyKoinosWalletClick}
         variant="solid"
         isLoading={isConnecting}
         minWidth="unset"
@@ -115,7 +115,7 @@ export default function KondorConnector({
         colorScheme="blue"
         size={size}
       >
-        Connect with Koinos Wallet
+        Connect with My Koinos Wallet
       </Button>
     </>
   )
