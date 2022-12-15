@@ -16,7 +16,7 @@
     "@emotion/react": "^11",
     "@emotion/styled": "^11",
     "@rainbow-me/rainbowkit": "^0.8.1",
-    "@roamin/my-koinos-wallet-sdk": "https://github.com/roaminro/my-koinos-wallet-sdk#44a17357c03ac0cb256fa5678ac0fe0c3f0f031e",
+    "@roamin/my-koinos-wallet-sdk": "https://github.com/roaminro/my-koinos-wallet-sdk#287607438a53a964335fff3d00a49239c4f34017",
     "@types/node": "18.11.9",
     "@types/react": "18.0.25",
     "@types/react-dom": "18.0.9",

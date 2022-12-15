@@ -1682,9 +1682,9 @@
     qrcode "1.5.0"
     react-remove-scroll "2.5.4"
 
-"@roamin/my-koinos-wallet-sdk@https://github.com/roaminro/my-koinos-wallet-sdk#44a17357c03ac0cb256fa5678ac0fe0c3f0f031e":
+"@roamin/my-koinos-wallet-sdk@https://github.com/roaminro/my-koinos-wallet-sdk#287607438a53a964335fff3d00a49239c4f34017":
   version "0.0.1"
-  resolved "https://github.com/roaminro/my-koinos-wallet-sdk#44a17357c03ac0cb256fa5678ac0fe0c3f0f031e"
+  resolved "https://github.com/roaminro/my-koinos-wallet-sdk#287607438a53a964335fff3d00a49239c4f34017"
 
 "@rushstack/eslint-patch@^1.1.3":
   version "1.2.0"
