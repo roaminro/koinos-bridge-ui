@@ -1,3 +1,6 @@
+# WARNING: THE CODE IN THIS REPOSITORY HAS NOT BEEN TESTED NOR AUDITED. IT IS NOT INTENDED FOR PRODUCTION.
+
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
